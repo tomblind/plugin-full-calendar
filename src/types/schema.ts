@@ -78,6 +78,8 @@ export const CommonSchema = z.object({
   description: z.string().optional(),
   url: z.string().optional(),
   location: z.string().optional(),
+  conferenceLink: z.string().optional(), // Join URL for a video/phone conference (e.g. Google Meet).
+  conferenceType: z.string().optional(), // Conference solution name, used for the button label/icon.
   notify: z
     .object({
       value: z.number().min(0).max(1440)

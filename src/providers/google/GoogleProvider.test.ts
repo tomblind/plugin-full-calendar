@@ -334,6 +334,53 @@ describe('GoogleProvider reminder mapping', () => {
   });
 });
 
+describe('GoogleProvider conference links', () => {
+  it('extracts the video entry point URI and conference solution name', () => {
+    const event = fromGoogleEvent({
+      id: 'google-event-1',
+      summary: 'Meet Event',
+      start: { dateTime: '2026-06-15T10:00:00+02:00', timeZone: 'Europe/Amsterdam' },
+      end: { dateTime: '2026-06-15T11:00:00+02:00', timeZone: 'Europe/Amsterdam' },
+      hangoutLink: 'https://meet.google.com/legacy-link',
+      conferenceData: {
+        entryPoints: [
+          { entryPointType: 'phone', uri: 'tel:+1-555-0100', label: '+1 555-0100' },
+          { entryPointType: 'video', uri: 'https://meet.google.com/abc-defg-hij' }
+        ],
+        conferenceSolution: { name: 'Google Meet' }
+      }
+    });
+
+    expect(event?.conferenceLink).toBe('https://meet.google.com/abc-defg-hij');
+    expect(event?.conferenceType).toBe('Google Meet');
+  });
+
+  it('falls back to hangoutLink when no video entry point is present', () => {
+    const event = fromGoogleEvent({
+      id: 'google-event-2',
+      summary: 'Legacy Meet Event',
+      start: { dateTime: '2026-06-15T10:00:00+02:00', timeZone: 'Europe/Amsterdam' },
+      end: { dateTime: '2026-06-15T11:00:00+02:00', timeZone: 'Europe/Amsterdam' },
+      hangoutLink: 'https://meet.google.com/legacy-link'
+    });
+
+    expect(event?.conferenceLink).toBe('https://meet.google.com/legacy-link');
+    expect(event?.conferenceType).toBeUndefined();
+  });
+
+  it('leaves conference fields unset when the event has no conference data', () => {
+    const event = fromGoogleEvent({
+      id: 'google-event-3',
+      summary: 'Plain Event',
+      start: { dateTime: '2026-06-15T10:00:00+02:00', timeZone: 'Europe/Amsterdam' },
+      end: { dateTime: '2026-06-15T11:00:00+02:00', timeZone: 'Europe/Amsterdam' }
+    });
+
+    expect(event?.conferenceLink).toBeUndefined();
+    expect(event?.conferenceType).toBeUndefined();
+  });
+});
+
 describe('GoogleProvider declined events', () => {
   it('filters out events where the user has declined the invite', () => {
     const event = fromGoogleEvent({

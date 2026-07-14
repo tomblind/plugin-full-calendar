@@ -20,6 +20,8 @@ import { parseSubcategoryTitle } from '../../features/category/categoryParser';
 import { t } from '../../features/i18n/i18n';
 import { setIcon } from 'obsidian';
 import { PluginState } from '../../core/PluginState';
+import { isHttpUrl } from '../../utils/url';
+import { openExternalUrl } from '../../utils/openExternalUrl';
 
 const Icon = ({ name }: { name: string }) => {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -218,6 +220,11 @@ export const EditEvent = ({
     initialDisplay
   );
 
+  // Conference / meeting link is read-only here (e.g. a Google Meet link). It is surfaced
+  // for quick access and preserved across edits, but not authored from this form.
+  const conferenceLink = initialEvent?.conferenceLink;
+  const conferenceType = initialEvent?.conferenceType;
+
   const titleRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (titleRef.current) {
@@ -321,6 +328,8 @@ export const EditEvent = ({
       subCategory: parsedSubCategory,
       location: location || undefined,
       description: description || undefined,
+      conferenceLink: conferenceLink || undefined,
+      conferenceType: conferenceType || undefined,
 
       notify: notifyValue !== '' ? { value: Number(notifyValue) } : undefined,
       alarms:
@@ -399,6 +408,17 @@ export const EditEvent = ({
                 placeholder={t('modals.editEvent.fields.location.placeholder') || 'Add location...'}
                 onChange={e => setLocation(e.target.value)}
               />
+              {isHttpUrl(location) && (
+                <button
+                  type="button"
+                  className="ofc-location-link-btn clickable-icon"
+                  aria-label="Open link"
+                  title="Open link"
+                  onClick={() => openExternalUrl(location.trim())}
+                >
+                  <Icon name="external-link" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -416,6 +436,17 @@ export const EditEvent = ({
             />
           </div>
         </div>
+
+        {conferenceLink && (
+          <div className="premium-field-full">
+            <div className="ofc-premium-input-wrap ofc-conference-link-wrap">
+              <Icon name="video" />
+              <a href={conferenceLink} target="_blank" rel="noopener noreferrer">
+                {conferenceType ? `Join ${conferenceType}` : 'Join call'}
+              </a>
+            </div>
+          </div>
+        )}
 
         <div className="setting-item">
           <div className="setting-item-info">

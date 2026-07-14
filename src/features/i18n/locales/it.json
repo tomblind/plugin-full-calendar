@@ -1595,7 +1595,10 @@
         "removeCheckbox": "Rimuovi la casella di controllo",
         "goToNote": "Vai alla nota",
         "delete": "Eliminare",
-        "noActions": "Nessuna azione disponibile sugli eventi remoti"
+        "noActions": "Nessuna azione disponibile sugli eventi remoti",
+        "joinMeeting": "Join meeting",
+        "joinConference": "Join {{name}}",
+        "goToLocationLink": "Go to location"
       }
     },
     "buttons": {

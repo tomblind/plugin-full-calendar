@@ -1595,7 +1595,10 @@
         "removeCheckbox": "Quitar casilla",
         "goToNote": "Ir a la nota",
         "delete": "Eliminar",
-        "noActions": "No hay acciones disponibles en eventos remotos"
+        "noActions": "No hay acciones disponibles en eventos remotos",
+        "joinMeeting": "Join meeting",
+        "joinConference": "Join {{name}}",
+        "goToLocationLink": "Go to location"
       }
     },
     "buttons": {

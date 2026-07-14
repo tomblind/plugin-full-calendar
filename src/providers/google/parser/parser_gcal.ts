@@ -57,6 +57,18 @@ export interface GoogleEventLike {
     self?: boolean;
     responseStatus?: string;
   }[];
+  hangoutLink?: string;
+  conferenceData?: {
+    entryPoints?: {
+      entryPointType?: 'video' | 'phone' | 'sip' | 'more';
+      uri?: string;
+      label?: string;
+    }[];
+    conferenceSolution?: {
+      name?: string;
+      iconUri?: string;
+    };
+  };
 }
 
 export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
@@ -91,6 +103,16 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
   eventData.title = gEvent.summary;
   eventData.location = gEvent.location;
   eventData.description = gEvent.description;
+
+  // Conference / meeting link. Prefer the video entry point URI, falling back to the
+  // legacy hangoutLink (which is only populated for Google Meet, not third-party solutions).
+  const conferenceLink =
+    gEvent.conferenceData?.entryPoints?.find(entry => entry.entryPointType === 'video')?.uri ??
+    gEvent.hangoutLink;
+  if (conferenceLink) {
+    eventData.conferenceLink = conferenceLink;
+    eventData.conferenceType = gEvent.conferenceData?.conferenceSolution?.name;
+  }
   const popupReminder = gEvent.reminders?.overrides?.find(
     reminder => reminder.method === 'popup' && typeof reminder.minutes === 'number'
   );

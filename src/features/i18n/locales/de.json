@@ -1595,7 +1595,10 @@
         "removeCheckbox": "Kontrollkästchen entfernen",
         "goToNote": "Gehe zur Notiz",
         "delete": "Löschen",
-        "noActions": "Keine Aktionen für Remote-Ereignisse verfügbar"
+        "noActions": "Keine Aktionen für Remote-Ereignisse verfügbar",
+        "joinMeeting": "Join meeting",
+        "joinConference": "Join {{name}}",
+        "goToLocationLink": "Go to location"
       }
     },
     "buttons": {

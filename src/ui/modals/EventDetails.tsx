@@ -159,6 +159,22 @@ export const EventDetails: React.FC<EventDetailsProps> = ({
         </div>
       )}
 
+      {event.conferenceLink && (
+        <div className="event-details-row">
+          <Icon name="video" />
+          <div className="event-details-content">
+            <a
+              href={event.conferenceLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="event-link"
+            >
+              {event.conferenceType ? `Join ${event.conferenceType}` : 'Join call'}
+            </a>
+          </div>
+        </div>
+      )}
+
       {event.description && (
         <div className="event-details-row">
           <Icon name="align-left" />

@@ -1661,6 +1661,9 @@
         "turnIntoTask": "Turn into task",
         "removeCheckbox": "Remove checkbox",
         "goToNote": "Go to note",
+        "joinMeeting": "Join meeting",
+        "joinConference": "Join {{name}}",
+        "goToLocationLink": "Go to location",
         "delete": "Delete",
         "noActions": "No actions available on remote events"
       }

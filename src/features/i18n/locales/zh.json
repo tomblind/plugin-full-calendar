@@ -1595,7 +1595,10 @@
         "removeCheckbox": "移除复选框",
         "goToNote": "转到笔记",
         "delete": "删除",
-        "noActions": "远程事件没有可用操作"
+        "noActions": "远程事件没有可用操作",
+        "joinMeeting": "Join meeting",
+        "joinConference": "Join {{name}}",
+        "goToLocationLink": "Go to location"
       }
     },
     "buttons": {

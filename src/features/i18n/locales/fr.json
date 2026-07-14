@@ -1595,7 +1595,10 @@
         "removeCheckbox": "Supprimer la case à cocher",
         "goToNote": "Aller à la note",
         "delete": "Supprimer",
-        "noActions": "Aucune action disponible sur les événements distants"
+        "noActions": "Aucune action disponible sur les événements distants",
+        "joinMeeting": "Join meeting",
+        "joinConference": "Join {{name}}",
+        "goToLocationLink": "Go to location"
       }
     },
     "buttons": {

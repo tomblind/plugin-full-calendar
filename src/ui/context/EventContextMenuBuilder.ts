@@ -9,6 +9,8 @@ import {
   ProviderEventContext
 } from '../../providers/Provider';
 import { t } from '../../features/i18n/i18n';
+import { isHttpUrl } from '../../utils/url';
+import { openExternalUrl } from '../../utils/openExternalUrl';
 
 type ActionGroup = EventContextAction[];
 
@@ -92,6 +94,10 @@ export async function openEventContextMenu(
   };
 
   const hasPriorItems = { value: false };
+
+  // Link actions (join meeting / go to location) are available regardless of editability,
+  // so remote/read-only calendars get them too.
+  addActionGroup(menu, buildLinkActions(context), hasPriorItems);
 
   if (PluginState.getCache().isEventEditable(eventApi.id)) {
     const menuCapabilities = getContextMenuCapabilities(capabilities);
@@ -184,6 +190,39 @@ async function buildProviderActions(
   context: ProviderEventContext
 ): Promise<ActionGroup> {
   return (await provider.getEventContextActions?.(context)) ?? [];
+}
+
+function buildLinkActions(context: ProviderEventContext): ActionGroup {
+  const actions: ActionGroup = [];
+  const { event } = context;
+
+  const conferenceLink = event.conferenceLink;
+  if (conferenceLink) {
+    actions.push({
+      id: 'link:join-conference',
+      title: event.conferenceType
+        ? t('ui.view.contextMenu.joinConference', { name: event.conferenceType })
+        : t('ui.view.contextMenu.joinMeeting'),
+      icon: 'video',
+      run: () => openExternalUrl(conferenceLink.trim())
+    });
+  }
+
+  // Some events stash a meeting link in the location field instead of a conference field.
+  if (isHttpUrl(event.location)) {
+    const locationLink = (event.location as string).trim();
+    // Avoid a duplicate entry when the location is just the conference link again.
+    if (locationLink !== conferenceLink?.trim()) {
+      actions.push({
+        id: 'link:go-to-location',
+        title: t('ui.view.contextMenu.goToLocationLink'),
+        icon: 'external-link',
+        run: () => openExternalUrl(locationLink)
+      });
+    }
+  }
+
+  return actions;
 }
 
 function buildNavigationActions(
