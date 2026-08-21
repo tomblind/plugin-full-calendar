@@ -1701,6 +1701,7 @@
         "removeCheckbox": "Supprimer la case à cocher",
         "openLinkedNote": "Ouvrir la note liée",
         "goToNote": "Aller à la note",
+        "openLocationUrl": "Ouvrir l'URL du lieu",
         "delete": "Supprimer",
         "noActions": "Aucune action disponible sur les événements distants"
       }

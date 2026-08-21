@@ -1701,6 +1701,7 @@
         "removeCheckbox": "Kontrollkästchen entfernen",
         "openLinkedNote": "Verknüpfte Notiz öffnen",
         "goToNote": "Gehe zur Notiz",
+        "openLocationUrl": "Ort-URL öffnen",
         "delete": "Löschen",
         "noActions": "Keine Aktionen für Remote-Ereignisse verfügbar"
       }

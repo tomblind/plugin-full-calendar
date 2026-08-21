@@ -11,6 +11,8 @@ import {
 import { t } from '../../features/i18n/i18n';
 import { LinkedNoteIndex } from '../../providers/utils/LinkedNoteIndex';
 import { OFCEvent } from '../../types';
+import { extractLocationUrl } from '../../utils/meetingUrl';
+import { openExternalUrl } from '../../utils/openExternalUrl';
 
 type ActionGroup = EventContextAction[];
 
@@ -95,6 +97,9 @@ export async function openEventContextMenu(
 
   const hasPriorItems = { value: false };
 
+  // Opening a location URL is read-only, so it is offered for remote events too.
+  addActionGroup(menu, buildLocationActions(context), hasPriorItems);
+
   if (PluginState.getCache().isEventEditable(eventApi.id)) {
     const menuCapabilities = getContextMenuCapabilities(capabilities);
 
@@ -116,6 +121,24 @@ export async function openEventContextMenu(
   }
 
   menu.showAtMouseEvent(mouseEvent);
+}
+
+export function buildLocationActions(context: ProviderEventContext): ActionGroup {
+  const url = extractLocationUrl(context.event.location);
+  if (!url) {
+    return [];
+  }
+
+  return [
+    {
+      id: 'location:open-url',
+      title: t('ui.view.contextMenu.openLocationUrl'),
+      icon: 'external-link',
+      run: () => {
+        openExternalUrl(url);
+      }
+    }
+  ];
 }
 
 function buildDisplayActions(

@@ -17,6 +17,9 @@ This is a great way to quickly see meeting notes, agendas, or other context you'
 
 Right-click on any event to open a context menu with quick actions.
 
+For any event whose **location** contains a web link, you can:
+-   **Open location URL:** Open the link from the event's location in your default system browser.
+
 For local, editable events, you can:
 -   **Turn into task / Remove checkbox:** Quickly toggle an event's task status.
 -   **Go to note:** Jump directly to the event's source note, opening it in a **new tab**.

@@ -54,3 +54,32 @@ export function linkify(text: string): React.ReactNode {
     })
     .filter(part => part !== '');
 }
+
+/**
+ * Extracts an openable http(s) URL from an event's `location` field.
+ *
+ * Locations often hold a bare meeting link ("https://meet.google.com/abc-def"),
+ * or a link embedded in prose ("Zoom: https://zoom.us/j/123 (passcode 4321)").
+ * Returns the first http(s) URL found, or null when the location holds none.
+ */
+export function extractLocationUrl(location: string | undefined | null): string | null {
+  if (!location) return null;
+
+  const match = location.match(/https?:\/\/[^\s<>"']+/i);
+  if (!match) return null;
+
+  // Trim trailing punctuation picked up from surrounding prose. A closing paren
+  // is only trimmed when the URL itself has no opening paren to match it.
+  let url = match[0].replace(/[.,;:!?'"\]}>]+$/, '');
+  while (url.endsWith(')') && !url.includes('(')) {
+    url = url.slice(0, -1);
+  }
+
+  try {
+    const parsed = new URL(url);
+    // A hostname is required — "https://" alone parses but is not openable.
+    return parsed.hostname ? url : null;
+  } catch {
+    return null;
+  }
+}

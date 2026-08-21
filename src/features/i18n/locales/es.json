@@ -1701,6 +1701,7 @@
         "removeCheckbox": "Quitar casilla",
         "openLinkedNote": "Abrir nota vinculada",
         "goToNote": "Ir a la nota",
+        "openLocationUrl": "Abrir URL de la ubicación",
         "delete": "Eliminar",
         "noActions": "No hay acciones disponibles en eventos remotos"
       }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { injectMeetingUrl, linkify } from './meetingUrl';
+import { extractLocationUrl, injectMeetingUrl, linkify } from './meetingUrl';
 
 describe('meetingUrl utilities', () => {
   describe('injectMeetingUrl', () => {
@@ -35,6 +35,68 @@ describe('meetingUrl utilities', () => {
       const result = injectMeetingUrl('https://meet.google.com/abc-def', 'Room 303', '');
       expect(result.location).toBe('Room 303');
       expect(result.description).toBe('meeting URL: https://meet.google.com/abc-def');
+    });
+  });
+
+  describe('extractLocationUrl', () => {
+    it('returns a bare https location URL', () => {
+      expect(extractLocationUrl('https://meet.google.com/abc-def')).toBe(
+        'https://meet.google.com/abc-def'
+      );
+    });
+
+    it('returns an http location URL', () => {
+      expect(extractLocationUrl('http://example.com/room')).toBe('http://example.com/room');
+    });
+
+    it('trims surrounding whitespace', () => {
+      expect(extractLocationUrl('  https://zoom.us/j/123  ')).toBe('https://zoom.us/j/123');
+    });
+
+    it('extracts a URL embedded in prose', () => {
+      expect(extractLocationUrl('Zoom: https://zoom.us/j/123 (passcode 4321)')).toBe(
+        'https://zoom.us/j/123'
+      );
+    });
+
+    it('strips trailing sentence punctuation', () => {
+      expect(extractLocationUrl('Join at https://zoom.us/j/123.')).toBe('https://zoom.us/j/123');
+      expect(extractLocationUrl('Join at (https://zoom.us/j/123)')).toBe('https://zoom.us/j/123');
+    });
+
+    it('keeps a closing paren that belongs to the URL', () => {
+      expect(extractLocationUrl('https://en.wikipedia.org/wiki/Foo_(bar)')).toBe(
+        'https://en.wikipedia.org/wiki/Foo_(bar)'
+      );
+    });
+
+    it('returns the first URL when several are present', () => {
+      expect(extractLocationUrl('https://a.example.com and https://b.example.com')).toBe(
+        'https://a.example.com'
+      );
+    });
+
+    it('returns null for a plain physical location', () => {
+      expect(extractLocationUrl('Conference Room 303')).toBeNull();
+    });
+
+    it('returns null for a bare domain without a scheme', () => {
+      expect(extractLocationUrl('www.example.com')).toBeNull();
+    });
+
+    it('returns null for non-http schemes', () => {
+      expect(extractLocationUrl('mailto:someone@example.com')).toBeNull();
+      expect(extractLocationUrl('obsidian://open?vault=Notes')).toBeNull();
+    });
+
+    it('returns null for a scheme with no host', () => {
+      expect(extractLocationUrl('https://')).toBeNull();
+    });
+
+    it('returns null for empty, undefined, and null locations', () => {
+      expect(extractLocationUrl('')).toBeNull();
+      expect(extractLocationUrl(undefined)).toBeNull();
+      expect(extractLocationUrl(null)).toBeNull();
     });
   });
 
