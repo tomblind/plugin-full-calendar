@@ -84,6 +84,23 @@ END:VCALENDAR
         status: 207,
         text: () => Promise.resolve(`<d:multistatus xmlns:d="DAV:"></d:multistatus>`)
       } as Response)
+      // updateEvent now GETs the existing object so it can patch it in place.
+      .mockResolvedValueOnce({
+        status: 200,
+        text: () =>
+          Promise.resolve(`BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:not-the-file-name
+SUMMARY:Original
+DTSTART:20260615T100000Z
+DTEND:20260615T110000Z
+ORGANIZER;CN=Boss:mailto:boss@example.com
+ATTENDEE;CN=Guest:mailto:guest@example.com
+CATEGORIES:WORK
+END:VEVENT
+END:VCALENDAR`)
+      } as Response)
       .mockResolvedValueOnce({ status: 204, statusText: 'No Content' } as Response);
 
     const [[oldEvent]] = await provider.getEvents();
@@ -106,7 +123,7 @@ END:VCALENDAR
       })
     );
 
-    const body = mockObsidianFetch.mock.calls[3][1]?.body;
+    const body = mockObsidianFetch.mock.calls[4][1]?.body;
     expect(body).toEqual(expect.stringContaining('BEGIN:VALARM'));
     expect(body).toEqual(expect.stringContaining('TRIGGER:-PT20M'));
   });

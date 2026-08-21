@@ -1,6 +1,6 @@
 import { OFCEvent, EventLocation } from '../../types';
 import { getEventsFromICS } from '../ics/ics';
-import { eventToIcs, createOverrideVEvent } from '../ics/formatter';
+import { eventToIcs, createOverrideVEvent, mergeEventIntoVEvent } from '../ics/formatter';
 import ical from 'ical.js';
 import {
   CalendarProvider,
@@ -354,6 +354,20 @@ function findVEventOverride(
         vevent =>
           getComponentUid(vevent) === uid &&
           getComponentRecurrenceId(vevent) === normalizedRecurrenceId
+      ) ?? null
+  );
+}
+
+/**
+ * Finds the master VEVENT for a UID — the one carrying no RECURRENCE-ID.
+ * Recurrence overrides living in the same calendar object are left alone.
+ */
+function findVEventMaster(vcalendar: ical.Component, uid: string): ical.Component | null {
+  return (
+    vcalendar
+      .getAllSubcomponents('vevent')
+      .find(
+        vevent => getComponentUid(vevent) === uid && getComponentRecurrenceId(vevent) === null
       ) ?? null
   );
 }
@@ -1314,17 +1328,26 @@ export class CalDAVProvider
       return null;
     }
 
-    // Convert to ICS
+    // A CalDAV PUT replaces the entire calendar object, so rebuilding the VEVENT
+    // from scratch discards every property the plugin does not model (ATTENDEE,
+    // ORGANIZER, CATEGORIES, ...) plus any sibling recurrence overrides stored in
+    // the same object. Patch the existing object in place where we can.
+    if (await this.tryMergeUpdate(url, newEvent, oldEvent)) {
+      if (isTask(newEvent)) {
+        await this.updateLinkedTaskNoteDates(newEvent);
+      }
+      return null;
+    }
+
+    // Fall back to a full replacement when the object could not be fetched or its
+    // master VEVENT could not be located. No worse than the previous behaviour.
     const icsContent = eventToIcs(newEvent);
 
-    // PUT to update
     await this.doRequest(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
         ...(oldEvent.etag ? { 'If-Match': `"${oldEvent.etag}"` } : {})
-        // We could use If-Match with ETag if we had it, to prevent lost updates.
-        // For now, simpler last-write-wins or just overwrite.
       },
       body: icsContent
     });
@@ -1575,7 +1598,9 @@ export class CalDAVProvider
     return [overrideEventData, null];
   }
 
-  private async fetchVCalendar(url: string): Promise<ical.Component> {
+  private async fetchVCalendarWithETag(
+    url: string
+  ): Promise<{ vcalendar: ical.Component; etag?: string }> {
     const headers: Record<string, string> = {};
     const authHeader = createBasicAuthHeader(this.source.username, this.getPassword() ?? undefined);
     if (authHeader) {
@@ -1586,17 +1611,73 @@ export class CalDAVProvider
     if (res.status >= 300) {
       throw new Error(`Failed to fetch original event: ${res.status}`);
     }
-    return parseVCalendar(await res.text());
+    return {
+      vcalendar: parseVCalendar(await res.text()),
+      etag: res.headers?.get('etag') ?? undefined
+    };
   }
 
-  private async putVCalendar(url: string, vcalendar: ical.Component): Promise<void> {
+  private async fetchVCalendar(url: string): Promise<ical.Component> {
+    return (await this.fetchVCalendarWithETag(url)).vcalendar;
+  }
+
+  private async putVCalendar(
+    url: string,
+    vcalendar: ical.Component,
+    ifMatch?: string
+  ): Promise<void> {
     await this.doRequest(url, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'text/calendar; charset=utf-8'
+        'Content-Type': 'text/calendar; charset=utf-8',
+        ...(ifMatch ? { 'If-Match': ifMatch } : {})
       },
       body: (vcalendar as unknown as { toString(): string }).toString()
     });
+  }
+
+  /**
+   * Fetches the existing calendar object and patches the plugin-owned properties
+   * of its master VEVENT in place, leaving everything else on the object intact.
+   *
+   * Returns false when the merge could not be attempted at all, so the caller can
+   * fall back to a full replacement rather than failing the user's edit.
+   */
+  private async tryMergeUpdate(
+    url: string,
+    newEvent: OFCEvent,
+    oldEvent: OFCEvent
+  ): Promise<boolean> {
+    const uid = newEvent.uid || oldEvent.uid;
+    if (!uid) {
+      return false;
+    }
+
+    let vcalendar: ical.Component;
+    let etag: string | undefined;
+    try {
+      ({ vcalendar, etag } = await this.fetchVCalendarWithETag(url));
+    } catch (e) {
+      console.warn(`[CalDAV] Could not fetch ${url} to merge; replacing wholesale instead.`, e);
+      return false;
+    }
+
+    const master = findVEventMaster(vcalendar, uid);
+    if (!master) {
+      console.warn(
+        `[CalDAV] No master VEVENT with UID ${uid} at ${url}; replacing wholesale instead.`
+      );
+      return false;
+    }
+
+    mergeEventIntoVEvent(master, newEvent);
+
+    // Prefer the ETag from the GET we just made over the cached one: it is both
+    // fresher and less likely to fail the precondition spuriously. A 412 here is
+    // surfaced to the user rather than retried as a destructive overwrite.
+    const ifMatch = etag ?? (oldEvent.etag ? `"${oldEvent.etag}"` : undefined);
+    await this.putVCalendar(url, vcalendar, ifMatch);
+    return true;
   }
 
   private async updateRecurrenceOverride(

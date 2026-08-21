@@ -963,6 +963,22 @@ END:VCALENDAR
 
     mockObsidianFetch
       .mockResolvedValueOnce({ status: 201, statusText: 'Created' } as Response)
+      // updateEvent GETs the existing object before patching it in place.
+      .mockResolvedValueOnce({
+        status: 200,
+        text: () =>
+          Promise.resolve(
+            `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:evt-workflow-1
+SUMMARY:Initial Name
+DTSTART;VALUE=DATE:20260327
+DTEND;VALUE=DATE:20260328
+END:VEVENT
+END:VCALENDAR`
+          )
+      } as Response)
       .mockResolvedValueOnce({ status: 204, statusText: 'No Content' } as Response)
       .mockResolvedValueOnce({ status: 204, statusText: 'No Content' } as Response);
 
@@ -985,7 +1001,7 @@ END:VCALENDAR
 
     await provider.deleteEvent({ persistentId: 'evt-workflow-1' });
 
-    expect(mockObsidianFetch).toHaveBeenCalledTimes(3);
+    expect(mockObsidianFetch).toHaveBeenCalledTimes(4);
 
     expect(mockObsidianFetch).toHaveBeenNthCalledWith(
       1,
@@ -999,6 +1015,14 @@ END:VCALENDAR
       2,
       'https://example.com/caldav/user/calendar/events/evt-workflow-1.ics',
       expect.objectContaining({
+        method: 'GET'
+      })
+    );
+
+    expect(mockObsidianFetch).toHaveBeenNthCalledWith(
+      3,
+      'https://example.com/caldav/user/calendar/events/evt-workflow-1.ics',
+      expect.objectContaining({
         method: 'PUT',
         headers: expect.objectContaining({
           'If-Match': '"old-etag"'
@@ -1007,7 +1031,7 @@ END:VCALENDAR
     );
 
     expect(mockObsidianFetch).toHaveBeenNthCalledWith(
-      3,
+      4,
       'https://example.com/caldav/user/calendar/events/evt-workflow-1.ics',
       expect.objectContaining({
         method: 'DELETE'
@@ -1145,10 +1169,26 @@ END:VCALENDAR
       jest
         .spyOn(caldavProvider.linkedNoteIndex, 'getFileForEventAfterHydration')
         .mockResolvedValue(linkedFile as unknown as import('obsidian').TFile);
-      mockObsidianFetch.mockResolvedValueOnce({
-        status: 204,
-        statusText: 'No Content'
-      } as Response);
+      mockObsidianFetch
+        .mockResolvedValueOnce({
+          status: 200,
+          text: () =>
+            Promise.resolve(
+              `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:caldav-uid-999
+SUMMARY:Task
+DTSTART;VALUE=DATE:20260420
+DTEND;VALUE=DATE:20260421
+END:VEVENT
+END:VCALENDAR`
+            )
+        } as Response)
+        .mockResolvedValueOnce({
+          status: 204,
+          statusText: 'No Content'
+        } as Response);
       const oldTask: OFCEvent = {
         ...mockEvent,
         completed: false,

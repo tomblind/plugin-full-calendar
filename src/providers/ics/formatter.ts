@@ -246,6 +246,11 @@ function createVEventComponent(event: OFCEvent, isOverride = false): ical.Compon
     vevent.addPropertyWithValue('description', event.description);
   }
 
+  // Location
+  if (event.location) {
+    vevent.addPropertyWithValue('location', event.location);
+  }
+
   addProviderAlarms(vevent, event);
 
   // Recurrence (RRULE) - Only for master events, not overrides usually
@@ -293,6 +298,78 @@ export function eventToIcs(event: OFCEvent): string {
   component.addSubcomponent(sub);
 
   return (component as unknown as { toString(): string }).toString();
+}
+
+/**
+ * VEVENT properties the plugin is capable of writing, and which are therefore
+ * replaced wholesale when merging an OFCEvent into an existing remote VEVENT.
+ *
+ * `duration` is listed even though we never write it: it is mutually exclusive
+ * with the DTEND we do write, so a remote object using DURATION must have it
+ * removed or the merged result would carry both.
+ *
+ * Anything absent from this list — ATTENDEE, ORGANIZER, CATEGORIES, STATUS,
+ * CLASS, GEO, SEQUENCE, X-* extensions, and so on — is left untouched.
+ */
+const PLUGIN_OWNED_VEVENT_PROPERTIES = [
+  'uid',
+  'summary',
+  'dtstamp',
+  'dtstart',
+  'dtend',
+  'duration',
+  'description',
+  'location',
+  'rrule',
+  'exdate'
+];
+
+/**
+ * Applies an OFCEvent onto an existing VEVENT in place, replacing only the
+ * properties the plugin owns and preserving everything else the remote object
+ * carries.
+ *
+ * Use this rather than rebuilding a VEVENT from scratch when updating an event
+ * that already exists on a server. A CalDAV PUT replaces the entire calendar
+ * object, so writing a freshly built component silently discards every property
+ * the plugin does not model.
+ *
+ * VALARMs are replaced rather than preserved: the plugin models alarms, and the
+ * edit UI expresses "no alarm" as `alarms: undefined`, so preserving them would
+ * make alarm removal impossible.
+ */
+export function mergeEventIntoVEvent(target: ical.Component, event: OFCEvent): void {
+  const fresh = event.recurrenceId
+    ? createOverrideVEvent(event, event.recurrenceId)
+    : createVEventComponent(event);
+
+  // Clear the properties we own. The union with the fresh component's own names
+  // keeps this correct if createVEventComponent later learns to write more:
+  // the static list covers values that were cleared (and so are absent from
+  // `fresh`), while the fresh names guarantee we never leave a duplicate.
+  // Snapshot before mutating anything: ical.js re-parents a property when it is
+  // added elsewhere, which would remove it from `fresh` mid-iteration and cause
+  // every other property to be skipped.
+  const freshProperties = fresh.getAllProperties().slice();
+  const freshAlarms = fresh.getAllSubcomponents('valarm').slice();
+
+  const namesToReplace = new Set<string>(PLUGIN_OWNED_VEVENT_PROPERTIES);
+  for (const property of freshProperties) {
+    namesToReplace.add(property.name);
+  }
+  for (const name of namesToReplace) {
+    target.removeAllProperties(name);
+  }
+
+  // Copy by value rather than moving, so `fresh` is never observed half-emptied.
+  for (const property of freshProperties) {
+    target.addProperty(new ical.Property(property.toJSON() as unknown[]));
+  }
+
+  target.removeAllSubcomponents('valarm');
+  for (const valarm of freshAlarms) {
+    target.addSubcomponent(new ical.Component(valarm.toJSON()));
+  }
 }
 
 /**

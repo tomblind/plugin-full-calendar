@@ -1,5 +1,6 @@
-import { eventToIcs, createOverrideVEvent, eventsToIcs } from './formatter';
+import { eventToIcs, createOverrideVEvent, eventsToIcs, mergeEventIntoVEvent } from './formatter';
 import { OFCEvent } from '../../types';
+import ical from 'ical.js';
 
 describe('ICS Formatter timezone serialization', () => {
   it('should serialize a timed event with an explicit local timezone and TZID parameter', () => {
@@ -330,5 +331,136 @@ describe('ICS Formatter timezone serialization', () => {
       expect(uidMatches?.length).toBe(2);
       expect(uidMatches![0]).toBe(uidMatches![1]);
     });
+  });
+});
+
+const timedEvent = (overrides: Partial<Record<string, unknown>> = {}): OFCEvent =>
+  ({
+    type: 'single',
+    uid: 'existing-event',
+    title: 'Team meeting',
+    date: '2026-08-20',
+    endDate: null,
+    allDay: false,
+    startTime: '10:00',
+    endTime: '11:00',
+    ...overrides
+  }) as unknown as OFCEvent;
+
+describe('ICS Formatter LOCATION serialization', () => {
+  it('writes LOCATION when the event has a location', () => {
+    expect(eventToIcs(timedEvent({ location: 'Room 5' }))).toContain('LOCATION:Room 5');
+  });
+
+  it('writes a URL location verbatim', () => {
+    expect(eventToIcs(timedEvent({ location: 'https://zoom.us/j/123' }))).toContain(
+      'LOCATION:https://zoom.us/j/123'
+    );
+  });
+
+  it('omits LOCATION when the event has none', () => {
+    expect(eventToIcs(timedEvent())).not.toContain('LOCATION');
+  });
+});
+
+describe('mergeEventIntoVEvent', () => {
+  const remoteIcs = (extra = '') => `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:existing-event
+SUMMARY:Original title
+DTSTART:20260820T100000Z
+DTEND:20260820T110000Z
+LOCATION:Room 5
+ORGANIZER;CN=Boss:mailto:boss@example.com
+ATTENDEE;CN=Guest:mailto:guest@example.com
+CATEGORIES:WORK,IMPORTANT
+STATUS:CONFIRMED
+CLASS:PRIVATE
+SEQUENCE:3
+X-CUSTOM-FLAG:keep-me
+${extra}END:VEVENT
+END:VCALENDAR`;
+
+  const mergeInto = (ics: string, event: OFCEvent): string => {
+    const vcalendar = ical.Component.fromString(ics);
+    const vevent = vcalendar.getAllSubcomponents('vevent')[0];
+    mergeEventIntoVEvent(vevent, event);
+    return (vcalendar as unknown as { toString(): string }).toString();
+  };
+
+  it('preserves properties the plugin does not model', () => {
+    const result = mergeInto(remoteIcs(), timedEvent({ title: 'Renamed', location: 'Room 5' }));
+
+    expect(result).toContain('ORGANIZER;CN=Boss:mailto:boss@example.com');
+    expect(result).toContain('ATTENDEE;CN=Guest:mailto:guest@example.com');
+    expect(result).toContain('CATEGORIES:WORK,IMPORTANT');
+    expect(result).toContain('STATUS:CONFIRMED');
+    expect(result).toContain('CLASS:PRIVATE');
+    expect(result).toContain('SEQUENCE:3');
+    expect(result).toContain('X-CUSTOM-FLAG:keep-me');
+  });
+
+  it('replaces the properties the plugin does own', () => {
+    const result = mergeInto(remoteIcs(), timedEvent({ title: 'Renamed', location: 'Room 5' }));
+
+    expect(result).toContain('SUMMARY:Renamed');
+    expect(result).not.toContain('SUMMARY:Original title');
+  });
+
+  it('writes a location that the plugin added', () => {
+    const result = mergeInto(remoteIcs(), timedEvent({ location: 'Room 9' }));
+
+    expect(result).toContain('LOCATION:Room 9');
+    expect(result).not.toContain('LOCATION:Room 5');
+  });
+
+  it('removes a location that was cleared', () => {
+    const result = mergeInto(remoteIcs(), timedEvent({ location: undefined }));
+
+    expect(result).not.toContain('LOCATION');
+  });
+
+  it('never leaves duplicate owned properties behind', () => {
+    const result = mergeInto(remoteIcs(), timedEvent({ title: 'Renamed', location: 'Room 9' }));
+
+    for (const name of ['UID', 'SUMMARY', 'DTSTART', 'DTEND', 'LOCATION']) {
+      const occurrences = result.split(/\r?\n/).filter(line => line.startsWith(`${name}:`)).length;
+      expect(occurrences).toBe(1);
+    }
+  });
+
+  it('drops a remote DURATION when it writes DTEND', () => {
+    const withDuration = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:existing-event
+SUMMARY:Original title
+DTSTART:20260820T100000Z
+DURATION:PT1H
+END:VEVENT
+END:VCALENDAR`;
+    const result = mergeInto(withDuration, timedEvent());
+
+    expect(result).toContain('DTEND:');
+    expect(result).not.toContain('DURATION');
+  });
+
+  it('replaces VALARMs so alarm edits and removals both take effect', () => {
+    const withAlarm = remoteIcs(`BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-PT99M
+END:VALARM
+`);
+
+    const edited = mergeInto(
+      withAlarm,
+      timedEvent({ alarms: [{ minutesBefore: 20, action: 'DISPLAY' }] })
+    );
+    expect(edited).toContain('TRIGGER:-PT20M');
+    expect(edited).not.toContain('TRIGGER:-PT99M');
+
+    const cleared = mergeInto(withAlarm, timedEvent({ alarms: undefined }));
+    expect(cleared).not.toContain('BEGIN:VALARM');
   });
 });
