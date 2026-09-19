@@ -18,7 +18,6 @@ import type {
   Calendar,
   EventApi,
   EventClickArg,
-  EventHoveringArg,
   EventSourceInput,
   LocaleSingularArg
 } from '@fullcalendar/core';
@@ -32,14 +31,19 @@ import {
   type RRulePluginLike
 } from '../../../../features/timezone/Timezone';
 import { PluginState } from '../../../../core/PluginState';
+import { PLUGIN_SLUG } from '../../../../types';
 import {
   fetchWeatherForecast,
   type WeatherInfo,
   formatTempRange
 } from '../../../../features/weather/Weather';
 import { WeatherDetailModal } from '../../../../features/weather/WeatherDetailModal';
-import { openDailyNoteForDate } from '../../../../features/daily-notes/openDailyNote';
+import {
+  getDailyNoteForDate,
+  openDailyNoteForDate
+} from '../../../../features/daily-notes/openDailyNote';
 import { i18n } from '../../../../features/i18n/i18n';
+import { isLightColor } from '../../../calendar/utils';
 
 export interface ExtraRenderProps {
   eventClick?: (info: EventClickArg) => void;
@@ -52,7 +56,7 @@ export interface ExtraRenderProps {
 
   select?: (startDate: Date, endDate: Date, allDay: boolean, viewType: string) => Promise<void>;
   modifyEvent?: (event: EventApi, oldEvent: EventApi, newResource?: string) => Promise<boolean>;
-  eventMouseEnter?: (info: EventHoveringArg) => void;
+  eventMouseOver?: (event: EventApi, el: HTMLElement, mouseEvent: MouseEvent) => void;
   firstDay?: number;
   initialView?: { desktop: string; mobile: string };
   timeFormat24h?: boolean;
@@ -174,7 +178,7 @@ export async function renderCalendar(
     eventClick,
     select,
     modifyEvent,
-    eventMouseEnter,
+    eventMouseOver,
     openContextMenuForEvent,
     toggleTask,
     getRecurringInstanceState,
@@ -833,7 +837,7 @@ export async function renderCalendar(
     });
   };
 
-  const bindDailyNoteClick = (el: HTMLElement, date: Date, selector: string): void => {
+  const bindDailyNoteLink = (el: HTMLElement, date: Date, selector: string): void => {
     if (!PluginState.getSettings().openDailyNoteOnDateClick) {
       return;
     }
@@ -848,6 +852,25 @@ export async function renderCalendar(
       event.preventDefault();
       event.stopPropagation();
       void openDailyNoteForDate(PluginState.getPlugin().app, date);
+    });
+    dateLabel.addEventListener('mouseover', event => {
+      const file = getDailyNoteForDate(date);
+      if (!file) {
+        return;
+      }
+
+      try {
+        PluginState.getPlugin().app.workspace.trigger('hover-link', {
+          event,
+          source: PLUGIN_SLUG,
+          hoverParent: containerEl,
+          targetEl: dateLabel,
+          linktext: file.path,
+          sourcePath: file.path
+        });
+      } catch {
+        // Page Preview is optional; a preview failure must not affect date navigation.
+      }
     });
   };
 
@@ -915,7 +938,11 @@ export async function renderCalendar(
   cal = new CalendarCtor(containerEl, {
     dayHeaderDidMount: arg => {
       if (arg.view.type.startsWith('timeGrid')) {
-        bindDailyNoteClick(arg.el, arg.date, '.fc-col-header-cell-cushion');
+        bindDailyNoteLink(arg.el, arg.date, '.fc-col-header-cell-cushion');
+      } else if (arg.view.type.startsWith('list')) {
+        // List headers render the weekday and full date as separate anchors for the same day.
+        bindDailyNoteLink(arg.el, arg.date, '.fc-list-day-text');
+        bindDailyNoteLink(arg.el, arg.date, '.fc-list-day-side-text');
       }
       const pluginSettings = PluginState.getSettings();
       if (settings?.weatherHide || pluginSettings.weatherHide) {
@@ -937,7 +964,7 @@ export async function renderCalendar(
       }
     },
     dayCellDidMount: arg => {
-      bindDailyNoteClick(arg.el, arg.date, '.fc-daygrid-day-number');
+      bindDailyNoteLink(arg.el, arg.date, '.fc-daygrid-day-number');
       const pluginSettings = PluginState.getSettings();
       if (
         settings?.weatherHide ||
@@ -1125,9 +1152,7 @@ export async function renderCalendar(
     eventDrop: modifyEventCallback,
     eventResize: modifyEventCallback,
 
-    eventMouseEnter,
-
-    eventDidMount: ({ event, el, textColor }) => {
+    eventDidMount: ({ event, el }) => {
       // Don't add context menu or checkboxes to shadow events
       if (event.extendedProps.isShadow) {
         el.addClass('fc-event-shadow');
@@ -1135,6 +1160,11 @@ export async function renderCalendar(
       }
 
       el.setAttribute('data-event-id', event.id);
+      if (eventMouseOver) {
+        el.addEventListener('mouseover', mouseEvent => {
+          eventMouseOver(event, el, mouseEvent);
+        });
+      }
       el.toggleClass('ofc-event-current-or-next', currentUpcomingEventIds.has(event.id));
       const eventColor = event.backgroundColor || event.borderColor || '';
       if (eventColor) {
@@ -1184,7 +1214,9 @@ export async function renderCalendar(
           }
 
           // Make the checkbox more visible against different color events.
-          if (textColor === 'black') {
+          const effectiveTextColor =
+            event.textColor || (eventColor && isLightColor(eventColor) ? 'black' : 'white');
+          if (effectiveTextColor === 'black') {
             checkbox.addClass('ofc-checkbox-black');
           } else {
             checkbox.addClass('ofc-checkbox-white');

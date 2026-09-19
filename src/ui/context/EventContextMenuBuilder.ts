@@ -13,6 +13,7 @@ import { LinkedNoteIndex } from '../../providers/utils/LinkedNoteIndex';
 import { OFCEvent } from '../../types';
 import { extractLocationUrl } from '../../utils/meetingUrl';
 import { openExternalUrl } from '../../utils/openExternalUrl';
+import { getEventInstanceDate } from '../../features/timezone/Timezone';
 
 type ActionGroup = EventContextAction[];
 
@@ -77,12 +78,6 @@ export async function openEventContextMenu(
   }
 
   const { event, calendarId, location } = eventDetails;
-  const provider = PluginState.getProviderRegistry().getInstance(calendarId);
-  const capabilities = PluginState.getProviderRegistry().getCapabilities(calendarId);
-
-  if (!provider || !capabilities) {
-    return;
-  }
 
   const context: ProviderEventContext = {
     eventId: eventApi.id,
@@ -97,10 +92,14 @@ export async function openEventContextMenu(
 
   const hasPriorItems = { value: false };
 
-  // Opening a location URL is read-only, so it is offered for remote events too.
+  // Opening a location URL mutates nothing, so it is offered for non-editable
+  // events and before the provider lookup.
   addActionGroup(menu, buildLocationActions(context), hasPriorItems);
 
-  if (PluginState.getCache().isEventEditable(eventApi.id)) {
+  const provider = PluginState.getProviderRegistry().getInstance(calendarId);
+  const capabilities = PluginState.getProviderRegistry().getCapabilities(calendarId);
+
+  if (provider && capabilities && PluginState.getCache().isEventEditable(eventApi.id)) {
     const menuCapabilities = getContextMenuCapabilities(capabilities);
 
     addActionGroup(menu, buildDisplayActions(plugin, eventApi, menuCapabilities), hasPriorItems);
@@ -211,6 +210,10 @@ async function buildProviderActions(
   return (await provider.getEventContextActions?.(context)) ?? [];
 }
 
+function getContextInstanceDate(context: ProviderEventContext): string | undefined {
+  return getEventInstanceDate(context.start, context.event.allDay, context.event.timezone);
+}
+
 async function buildNavigationActions(
   plugin: FullCalendarPlugin,
   context: ProviderEventContext
@@ -226,8 +229,7 @@ async function buildNavigationActions(
   };
   if (provider && typeof linkedNoteProvider.createLinkedNote === 'function') {
     // Derive the instanceDate for recurring events the same way buildDeleteActions does.
-    const instanceDate =
-      context.start instanceof Date ? context.start.toISOString().slice(0, 10) : undefined;
+    const instanceDate = getContextInstanceDate(context);
     actions.push({
       id: 'navigation:open-linked-note',
       title: t('ui.view.contextMenu.openLinkedNote'),
@@ -280,8 +282,7 @@ function buildDeleteActions(
           (context.event.type === 'recurring' || context.event.type === 'rrule') &&
           context.start
         ) {
-          const instanceDate =
-            context.start instanceof Date ? context.start.toISOString().slice(0, 10) : undefined;
+          const instanceDate = getContextInstanceDate(context);
           await PluginState.getCache().deleteEvent(context.eventId, { instanceDate });
         } else {
           await PluginState.getCache().deleteEvent(context.eventId);

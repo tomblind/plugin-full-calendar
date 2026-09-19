@@ -27,6 +27,25 @@
 
 Creates one-note-per-event records, supports full CRUD, and uses robust filename collision handling to avoid destructive overwrites.
 
+**Frontmatter-first event identity**: The plugin treats frontmatter as the authoritative source for all event data. The note's filename is used only for file organisation and is never the basis for what is displayed on the calendar. Specifically:
+
+- **Date Resolution**: `getEventsInFile()` checks `frontmatter.date`, falling back to `due`, `scheduled`, `start`, or `startDate` if `date` is absent.
+- **Task Inference**: Notes with `isTask: true`, `task: true`, `completed` (boolean or date), `due`, or `scheduled` are automatically inferred as calendar tasks (`isTask: true`).
+- **Title Extraction**: `getEventsInFile()` reads the `title:` field from frontmatter. If absent or empty, it falls back to `extractCleanTitleFromBasename()` (`src/providers/utils/noteUtils.ts`), which strips known auto-generated prefixes before using the filename as a fallback title:
+    - ISO date prefix (e.g. `2026-09-05 Meeting` → `Meeting`)
+    - Recurrence prefix (e.g. `(Every M,W) Standup` → `Standup`)
+    - Unique suffix (e.g. `Meeting-_-_-1` → `Meeting`)
+- **Event UID**: Always set to `file.path` after parsing (`event.uid = file.path`). This is the stable persistent identifier — not the title, not the filename stem.
+- **Recursive Scanning**: `getEvents()` recursively gathers all notes in subdirectories inside the configured calendar folder.
+
+**Vault rename & cache handling**:
+- `main.ts` listens for `vault.on('rename')` and handles both `TFile` and `TFolder` renames. For folder renames, it recursively deletes old child paths and triggers updates for all nested files.
+- `metadataCache.on('resolve')` is registered in addition to `'changed'`, ensuring metadata updates triggered upon file renames are indexed immediately.
+- `ObsidianIO.read(file)` falls back to direct disk reads (`vault.read(file)`) if `vault.cachedRead(file)` throws or returns an empty string during rename propagation.
+- Existing `isBulkUpdating` guard in `CacheSyncHandler` prevents double-processing when the plugin itself renames files via `updateEvent()`.
+
+**`basenameFromEvent` / `filenameForEvent`**: These remain in use for *creating* new event notes and for deciding if a file should be renamed when a user edits title or date via the modal. They are intentionally **not** used for reading.
+
 **Location & Description Mapping**: Parses and writes `location` (geographic/logical address) and `description` (multiline text) dynamically inside the note's YAML frontmatter block.
 
 **Frontmatter Serialization & Colon Safety**: All string properties in frontmatter are escaped and double-quoted by default when serialized (`escapeYamlString` in `frontmatter.ts` and `noteUtils.ts`). This prevents unquoted colons (`title: Super: Event`) from breaking Obsidian's YAML metadata parser. When reading note files, `getEventsInFile` utilizes `parseFrontmatterWithFallback` if Obsidian's `metadataCache` fails or returns unparsed metadata due to unquoted colons in historical or manually-edited notes.
@@ -40,9 +59,13 @@ Parses list items under configured heading and performs line-targeted updates. I
 Note lookup and creation are delegated through a source adapter:
 
 - `ObsidianDailyNoteSourceAdapter` preserves the existing `obsidian-daily-notes-interface` integration for core Daily Notes and Periodic Notes.
-- `JournalsDailyNoteSourceAdapter` validates the optional Journals runtime API, selects a configured Day journal, and delegates resolution/creation to that journal. Journals remains optional and owns its folder, naming, template, and frontmatter initialization.
+- `JournalsDailyNoteSourceAdapter` consumes a `JournalsBridge`, selects a configured Day journal, and delegates resolution/creation to that exact journal. Journals remains optional and owns its folder, naming, template, and frontmatter initialization.
 
-Both adapters feed the same heading parser, serializer, UID allocator, and CRUD implementation. The Journals adapter is intentionally narrow because Journals does not currently publish a documented third-party API; runtime shape checks contain that compatibility boundary.
+`JournalsBridge` is the only compatibility boundary. It prefers Journals 3.2+'s `obsidian-journals-api` locator and documented asynchronous surface, then falls back to the capability-checked Journals 2.x runtime. Provider and UI code do not branch on plugin version strings or private 3.x fields. The official adapter uses `listJournals({ writeType: "day" })`, `notesFor`, `journalOf`, and `ensureNote`; exact journal-name selectors preserve multiple-Day-journal isolation. The legacy adapter retains `journals`, `getJournal`, `index`, and `journal.open` behavior for 2.x.
+
+Both adapters feed the same heading parser, serializer, UID allocator, and CRUD implementation. The 3.2 API makes note operations asynchronous, so CRUD awaits bridge results. FCR's synchronous event-handle and file-relevance contracts use only a selected-journal path/date cache hydrated by authoritative API reads and maintained by `noteAdded`/`noteRemoved` subscriptions. Provider teardown disposes those subscriptions during source reload and plugin unload. `journalRenamed` migrates every matching persisted `journalId`; Journals defines the journal name itself as identity.
+
+Journals 3.2 does not expose journal templates through its public API. Heading suggestions therefore come from headings in existing selected-journal notes, while manual heading entry remains available. The 2.x adapter continues to inspect its public-at-runtime template settings for the legacy UX.
 
 Daily Notes and Journals have independent persisted source discriminators (`dailynote` and `journals`). `JournalsProvider` reuses `DailyNoteProvider` as its date-note CRUD base, while remaining separately registered so multiple selected Day journals can coexist without participating in the single Daily Note source limit. Legacy Journals sources saved as `type: dailynote` plus `provider: journals` are migrated to `type: journals`.
 
@@ -74,6 +97,9 @@ Uses direct `REPORT`/`GET` flow with robust XML namespace handling and fallback 
 #### Legacy mixed VTODO & VEVENT dual-REPORT architecture
 - **Dual-REPORT Strategy:** Under the CalDAV RFC 4791 specification, time-range queries cannot filter for both `VEVENT` and `VTODO` components using a logical `OR` condition within a single `calendar-query` report, because sibling `comp-filter` elements are logically ANDed. To query both component types efficiently and standard-compliantly, the provider executes two sequential `REPORT` queries: one for `VEVENT` and one for `VTODO`.
 - **Fallback Avoidance:** If a server does not support standard `REPORT` queries and triggers a compatibility `PROPFIND` fallback (which fetches all files in the collection), the provider flags `fellBack = true` and skips the second `VTODO` `REPORT` query entirely, as the fallback has already fetched all objects (both events and tasks) in a single request.
+- **Component-preserving writes:** New task-model items serialize through the VTODO codec; ordinary events continue through the VEVENT formatter. Updating an existing task uses `GET → VTODO patch → conditional PUT`, keyed by UID, so an all-day task cannot regress into a VEVENT when edited through Full Calendar.
+- **Explicit component conversion:** Task identity in the submitted model selects the target component. VTODO → VTODO updates patch the fetched resource and preserve unmapped/server properties; VEVENT → VTODO and VTODO → VEVENT conversions serialize a fresh target component because the original resource has no component of that type to patch.
+- **Location invariant:** ICS parsing maps `LOCATION` into `OFCEvent.location`; `toEventInput`/`fromEventApi` carry it through FullCalendar interactions; VEVENT and VTODO serializers write it back. Drag, resize, conversion, and modal edits must therefore preserve imported locations instead of silently clearing them.
 - **Content Deduplication:** All retrieved calendar objects are combined and deduplicated based on their raw ICS payload content to eliminate any overlaps.
 - **Compatibility:** Existing `caldav` sources keep this mixed read path so saved configurations require no migration.
 
@@ -239,6 +265,7 @@ Read-only provider (`isRemote = false`, `loadPriority = 10`) that reads Obsidian
 **Frontmatter Field Extraction & Categorization**:
 - Heuristically extracts event dates from frontmatter keys: `date`, `start`, `startTime`, or `due`.
 - Extracts categories (`category`, `Category`) and sub-categories (`subCategory`, `SubCategory`, `sub category`).
+- **Title resolution** follows the same frontmatter-first policy as `FullNoteProvider`: the `title:` frontmatter field is authoritative; if absent or empty, `extractCleanTitleFromBasename()` is used as a fallback (stripping date prefixes, recurrence prefixes, and unique suffixes before displaying the filename as a title).
 - Synthesizes formatted event titles as `Category - SubCategory - Title` or `Category - Title` prior to passing through [`validateEvent()`](file:///d:/Codes/plugin-full-calendar/src/types.ts).
 - Sets `event.uid` to `file.path` to enable O(1) persistent navigation back to the source note on click.
 

@@ -13,6 +13,7 @@ import { CalendarSettings, CalendarSettingsRef } from './calendars/CalendarSetti
 import { CalendarInfo } from '../../../types/calendar_settings';
 import { t } from '../../../features/i18n/i18n';
 import { createDescWithDocs, createDocsLinksFragment } from '../docsLinks';
+import { listWritableCalendars } from '../../../utils/writableCalendars';
 
 export function renderCalendarManagement(
   containerEl: HTMLElement,
@@ -182,11 +183,28 @@ export function renderCalendarManagement(
   addCalendarButton(
     plugin,
     containerEl,
-    (source: CalendarInfo): void => {
-      calendarSettingsRef.current?.addSource(source);
+    (source: CalendarInfo | CalendarInfo[]): void => {
+      const sources = Array.isArray(source) ? source : [source];
+      calendarSettingsRef.current?.addSources(sources);
     },
     () => calendarSettingsRef.current?.getUsedDirectories() ?? []
   );
+
+  new Setting(containerEl)
+    .setName(t('settings.calendars.defaultCalendar.label'))
+    .setDesc(t('settings.calendars.defaultCalendar.description'))
+    .addDropdown(dropdown => {
+      dropdown.addOption('', t('settings.calendars.defaultCalendar.firstAvailable'));
+      listWritableCalendars().forEach(calendar => {
+        dropdown.addOption(calendar.id, calendar.name || calendar.id);
+      });
+
+      dropdown.setValue(PluginState.getSettings().defaultCalendarId ?? '');
+      dropdown.onChange(async value => {
+        PluginState.getSettings().defaultCalendarId = value || null;
+        await PluginState.saveSettings();
+      });
+    });
 
   new Setting(containerEl).setDesc(
     createDocsLinksFragment(

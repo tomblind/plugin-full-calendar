@@ -15,10 +15,12 @@ Calendars are automatically re-fetched from their source at most every five minu
 ## Two-Way Sync and Timezone Behavior
 
 - **Two-Way Sync:** CalDAV calendars now support full two-way synchronization. Changes made in Obsidian are pushed to the server, and remote changes are pulled in periodically.
+- **Locations:** The event modal's location field maps to the iCalendar `LOCATION` property. Locations imported from the server remain attached after drag, resize, or edit operations; locations entered in Full Calendar are written back for both events and tasks.
 - **Video Conferencing & Links:** Automatically parses the RFC 7986 `CONFERENCE` property and Microsoft Teams/Skype meeting URLs, mapping them into the event's location or description. All meeting links and general URLs are rendered as clickable hyperlinks in the [Event Details modal](../events/manage.md#video-conference--linkification-support). For details, see [Video Conference & Linkification Support](../events/manage.md#video-conference--linkification-support).
-- **Task Support (VTODO):** Existing mixed CalDAV sources retain their legacy VTODO reading and backlog behavior. For task-only collections and VTODO-native create/edit/complete/delete synchronization, use the dedicated [CalDAV Tasks](caldav-tasks.md) source.
+- **Task Support (VTODO):** Mixed CalDAV sources read both events and tasks. Turning a single event into a task writes a `VTODO`; removing task status changes it back to a `VEVENT`. Editing, moving, or renaming an imported task keeps it a `VTODO`, including date-only and scheduled tasks, while preserving server-specific task properties. For isolated task/reminder collections, completion controls, and stricter task-only validation, use the dedicated [CalDAV Tasks](caldav-tasks.md) source.
 - **Timezones:** Events and tasks are parsed with their source timezone and converted to your Display Timezone for viewing.
 - **Cancellations:** Cancellations/exceptions present on the server are respected.
+- **Recurring exceptions:** Moving one occurrence creates an exception in the original CalDAV resource. That occurrence can be moved again later without changing the rest of the series.
 
 ---
 
@@ -32,6 +34,9 @@ CalDAV tasks (`VTODO` components) that do not have a scheduled or due date are p
 - **Linked Notes**: Clicking the note icon next to a CalDAV task in the backlog will automatically generate and open a local linked markdown note in Obsidian using your configured templates, allowing you to attach rich local notes and details to remote tasks.
 
 The global **Linked Note Link Strategy** also applies to CalDAV tasks. Name-based mode reuses the exact task-title file across reschedules and recurring occurrences; deadline-based mode keeps dated occurrence notes separate.
+
+!!! note "Task identity during write-back"
+    Full Calendar stores calendar appointments as `VEVENT` and tasks as `VTODO`. An all-day task remains a task when it is created, renamed, or rescheduled through Obsidian; `all-day` controls placement only and does not convert the item into an event. Changing an event into a task replaces its `VEVENT` representation with `VTODO`; changing it back writes `VEVENT` again.
 
 ### Linked Task Date Properties
 
