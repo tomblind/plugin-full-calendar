@@ -11,9 +11,19 @@ import {
 import { t } from '../../features/i18n/i18n';
 import { LinkedNoteIndex } from '../../providers/utils/LinkedNoteIndex';
 import { OFCEvent } from '../../types';
-import { extractLocationUrl } from '../../utils/meetingUrl';
-import { openExternalUrl } from '../../utils/openExternalUrl';
 import { getEventInstanceDate } from '../../features/timezone/Timezone';
+
+/**
+ * Returns true when `str` is an absolute URL with an http or https scheme.
+ */
+function isValidUrl(str: string): boolean {
+  try {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 type ActionGroup = EventContextAction[];
 
@@ -79,39 +89,55 @@ export async function openEventContextMenu(
 
   const { event, calendarId, location } = eventDetails;
 
-  const context: ProviderEventContext = {
-    eventId: eventApi.id,
-    event,
-    calendarId,
-    location,
-    display: eventApi.display,
-    title: eventApi.title,
-    start: eventApi.start,
-    startStr: eventApi.startStr,
-    plugin
-  };
-
+  // Location URL action: available for all events regardless of provider or editability.
   const hasPriorItems = { value: false };
-
-  // Opening a location URL mutates nothing, so it is offered for non-editable
-  // events and before the provider lookup.
-  addActionGroup(menu, buildLocationActions(context), hasPriorItems);
+  const locationStr = event.location;
+  if (locationStr && isValidUrl(locationStr)) {
+    addActionGroup(
+      menu,
+      [
+        {
+          id: 'location:open-url',
+          title: t('ui.view.contextMenu.openLocationUrl'),
+          icon: 'external-link',
+          run: async () => {
+            window.open(locationStr, '_blank');
+          }
+        }
+      ],
+      hasPriorItems
+    );
+  }
 
   const provider = PluginState.getProviderRegistry().getInstance(calendarId);
   const capabilities = PluginState.getProviderRegistry().getCapabilities(calendarId);
 
-  if (provider && capabilities && PluginState.getCache().isEventEditable(eventApi.id)) {
-    const menuCapabilities = getContextMenuCapabilities(capabilities);
+  if (provider && capabilities) {
+    const context: ProviderEventContext = {
+      eventId: eventApi.id,
+      event,
+      calendarId,
+      location,
+      display: eventApi.display,
+      title: eventApi.title,
+      start: eventApi.start,
+      startStr: eventApi.startStr,
+      plugin
+    };
 
-    addActionGroup(menu, buildDisplayActions(plugin, eventApi, menuCapabilities), hasPriorItems);
-    addActionGroup(
-      menu,
-      await buildGenericTaskActions(plugin, context, menuCapabilities),
-      hasPriorItems
-    );
-    addActionGroup(menu, await buildProviderActions(provider, context), hasPriorItems);
-    addActionGroup(menu, await buildNavigationActions(plugin, context), hasPriorItems);
-    addActionGroup(menu, buildDeleteActions(plugin, context), hasPriorItems);
+    if (PluginState.getCache().isEventEditable(eventApi.id)) {
+      const menuCapabilities = getContextMenuCapabilities(capabilities);
+
+      addActionGroup(menu, buildDisplayActions(plugin, eventApi, menuCapabilities), hasPriorItems);
+      addActionGroup(
+        menu,
+        await buildGenericTaskActions(plugin, context, menuCapabilities),
+        hasPriorItems
+      );
+      addActionGroup(menu, await buildProviderActions(provider, context), hasPriorItems);
+      addActionGroup(menu, await buildNavigationActions(plugin, context), hasPriorItems);
+      addActionGroup(menu, buildDeleteActions(plugin, context), hasPriorItems);
+    }
   }
 
   if (!hasPriorItems.value) {
@@ -121,24 +147,6 @@ export async function openEventContextMenu(
   }
 
   menu.showAtMouseEvent(mouseEvent);
-}
-
-export function buildLocationActions(context: ProviderEventContext): ActionGroup {
-  const url = extractLocationUrl(context.event.location);
-  if (!url) {
-    return [];
-  }
-
-  return [
-    {
-      id: 'location:open-url',
-      title: t('ui.view.contextMenu.openLocationUrl'),
-      icon: 'external-link',
-      run: () => {
-        openExternalUrl(url);
-      }
-    }
-  ];
 }
 
 function buildDisplayActions(

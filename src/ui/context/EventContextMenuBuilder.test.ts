@@ -1,7 +1,4 @@
-import { buildLocationActions, getContextMenuCapabilities } from './EventContextMenuBuilder';
-import { ProviderEventContext } from '../../providers/Provider';
-import { OFCEvent } from '../../types';
-import { openExternalUrl } from '../../utils/openExternalUrl';
+import { getContextMenuCapabilities } from './EventContextMenuBuilder';
 
 const mockMenuItems: { title: string; onClick?: () => void }[] = [];
 
@@ -54,13 +51,6 @@ jest.mock('../../features/i18n/i18n', () => ({
   t: (key: string) => key
 }));
 
-jest.mock('../../utils/openExternalUrl', () => ({
-  openExternalUrl: jest.fn()
-}));
-
-const contextForLocation = (location?: string): ProviderEventContext =>
-  ({ event: { location } as OFCEvent }) as ProviderEventContext;
-
 describe('EventContextMenuBuilder capabilities', () => {
   it('preserves generic task actions by default for existing providers', () => {
     expect(
@@ -97,37 +87,6 @@ describe('EventContextMenuBuilder capabilities', () => {
         }
       }).allowGenericTaskActions
     ).toBe(true);
-  });
-});
-
-describe('buildLocationActions', () => {
-  beforeEach(() => {
-    (openExternalUrl as jest.Mock).mockClear();
-  });
-
-  it('offers an open action when the location is a URL', () => {
-    const actions = buildLocationActions(contextForLocation('https://meet.google.com/abc-def'));
-
-    expect(actions).toHaveLength(1);
-    expect(actions[0].id).toBe('location:open-url');
-    expect(actions[0].title).toBe('ui.view.contextMenu.openLocationUrl');
-  });
-
-  it('opens the extracted URL in the default browser when run', () => {
-    const actions = buildLocationActions(
-      contextForLocation('Zoom: https://zoom.us/j/123 (passcode 4321)')
-    );
-    void actions[0].run();
-
-    expect(openExternalUrl).toHaveBeenCalledWith('https://zoom.us/j/123');
-  });
-
-  it('offers nothing for a physical location', () => {
-    expect(buildLocationActions(contextForLocation('Conference Room 303'))).toEqual([]);
-  });
-
-  it('offers nothing when the event has no location', () => {
-    expect(buildLocationActions(contextForLocation(undefined))).toEqual([]);
   });
 });
 
@@ -432,8 +391,8 @@ describe('EventContextMenuBuilder location URL actions', () => {
     expect(item).toBeDefined();
   });
 
-  it('opens the location URL in the default browser when clicked', async () => {
-    (openExternalUrl as jest.Mock).mockClear();
+  it('calls window.open with the location URL when clicked', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
 
     const { openEventContextMenu } = await import('./EventContextMenuBuilder');
     const { mockEventApi } = await makeContextMenuSetup({
@@ -451,7 +410,8 @@ describe('EventContextMenuBuilder location URL actions', () => {
     item?.onClick?.();
     await new Promise(resolve => window.setTimeout(resolve, 10));
 
-    expect(openExternalUrl).toHaveBeenCalledWith('https://meet.google.com/abc-def');
+    expect(openSpy).toHaveBeenCalledWith('https://meet.google.com/abc-def', '_blank');
+    openSpy.mockRestore();
   });
 
   it('does NOT show location menu item when location is a plain string', async () => {

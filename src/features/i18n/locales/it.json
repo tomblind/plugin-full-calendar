@@ -1734,9 +1734,9 @@
         "removeCheckbox": "Rimuovi la casella di controllo",
         "openLinkedNote": "Apri nota collegata",
         "goToNote": "Vai alla nota",
-        "openLocationUrl": "Apri URL della posizione",
         "delete": "Eliminare",
-        "noActions": "Nessuna azione disponibile sugli eventi remoti"
+        "noActions": "Nessuna azione disponibile sugli eventi remoti",
+        "openLocationUrl": "Open location in browser"
       }
     },
     "buttons": {

@@ -23,7 +23,7 @@ Right-click on any event to open a context menu with context-aware actions.
 
 ### Universal Actions
 
--   **Open Location URL:** When an event's `location` field contains an `http`/`https` link (such as Google Meet, Zoom, Microsoft Teams, or web map links), this action appears at the top of the menu with an external link icon. Clicking it opens the link in your default web browser. The link is found even when it sits inside surrounding text, as in `Zoom: https://example.zoom.us/j/123 (passcode 4567)`. Available across all providers and editability levels.
+-   **Open Location URL:** When an event has a valid URL in its `location` field (such as Google Meet, Zoom, Microsoft Teams, or web map links), this action appears at the top of the menu with an external link icon. Clicking it opens the link directly in your default web browser. Available across all providers and editability levels.
 
 ### Provider & Navigation Actions
 

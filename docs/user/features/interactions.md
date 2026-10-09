@@ -78,9 +78,7 @@ Typical progression in standard time-grid views:
 
 ## Context Menu Actions
 
-- **Open location URL** — shown whenever the event's `location` holds a valid web URL. Opens it in your default system browser.
-
-Editable events also include:
+Editable events include:
 - Turn into task / Remove checkbox
 - **Open linked note** — shown for remote events whose provider supports linked notes (Google, CalDAV, Outlook, ICS, Holidays). Creates the note on first use, opens it on subsequent uses.
 - Go to note — shown for local note events (frontmatter / daily note sources).
