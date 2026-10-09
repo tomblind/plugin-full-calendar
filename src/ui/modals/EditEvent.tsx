@@ -138,6 +138,30 @@ export function computeSubmittedAlarms(
   return initialAlarms && initialAlarms.length > 0 ? [] : undefined;
 }
 
+/**
+ * When the start date moves, move the end date by the same number of days so a
+ * multi-day event keeps its length. Returns `endDate` unchanged when there is no
+ * end date or either start date is empty.
+ */
+export function shiftEndDate(oldStart: string, newStart: string, endDate: string): string {
+  if (!endDate || !oldStart || !newStart) {
+    return endDate;
+  }
+  const days = DateTime.fromISO(newStart).diff(DateTime.fromISO(oldStart), 'days').days;
+  return DateTime.fromISO(endDate).plus({ days }).toISODate() ?? endDate;
+}
+
+/**
+ * The inclusive end date to save for a single event, or null when the event
+ * ends on its start date (or the end date is empty or before the start).
+ */
+export function normalizeEndDate(startDate: string, endDate: string): string | null {
+  if (!startDate || !endDate || endDate <= startDate) {
+    return null;
+  }
+  return endDate;
+}
+
 function getInitialRecurrenceType(event?: Partial<OFCEvent>): RecurrenceType {
   if (event?.type !== 'recurring') {
     return 'none';
@@ -186,8 +210,8 @@ export const EditEvent = ({
             : ''
       : ''
   );
-  const [endDate] = useState(
-    initialEvent && initialEvent.type === 'single' ? initialEvent.endDate : undefined
+  const [endDate, setEndDate] = useState(
+    (initialEvent && initialEvent.type === 'single' ? initialEvent.endDate : undefined) || ''
   );
   const [startTime, setStartTime] = useState(
     initialEvent?.allDay === false ? initialEvent.startTime || '' : ''
@@ -316,7 +340,7 @@ export const EditEvent = ({
       eventData = {
         type: 'single',
         date: date || '',
-        endDate: endDate || null,
+        endDate: normalizeEndDate(date || '', endDate),
         completed: completedValue
       };
     } else {
@@ -497,7 +521,28 @@ export const EditEvent = ({
             <div className="setting-item-name">{t('modals.editEvent.fields.date.label')}</div>
           </div>
           <div className="setting-item-control">
-            <input type="date" value={date} required onChange={e => setDate(e.target.value)} />
+            {recurrenceType === 'none' ? (
+              <div className="ofc-date-inputs-wrap">
+                <input
+                  type="date"
+                  value={date}
+                  required
+                  onChange={e => {
+                    setEndDate(shiftEndDate(date || '', e.target.value, endDate));
+                    setDate(e.target.value);
+                  }}
+                />
+                <span>➔</span>
+                <input
+                  type="date"
+                  value={endDate || date}
+                  min={date}
+                  onChange={e => setEndDate(e.target.value)}
+                />
+              </div>
+            ) : (
+              <input type="date" value={date} required onChange={e => setDate(e.target.value)} />
+            )}
           </div>
         </div>
 
