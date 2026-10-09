@@ -1,4 +1,4 @@
-import { OFCEvent, EventLocation } from '../types';
+import { OFCEvent, EventLocation, AttendanceResponse } from '../types';
 import {
   EventHandle,
   ProviderConfigContext,
@@ -91,6 +91,12 @@ export interface EventContextAction {
   run(): Promise<void> | void;
 }
 
+/**
+ * Which events a reply to a recurring invitation applies to: only the
+ * occurrence the user opened, or the whole series.
+ */
+export type AttendanceScope = 'instance' | 'series';
+
 export interface RecurringInstanceState {
   completed: boolean;
   skipped: boolean;
@@ -147,6 +153,22 @@ export interface CalendarProvider<TConfig> {
    * @returns A promise that resolves to `true` on success and `false` on failure.
    */
   toggleComplete?(eventId: string, isDone: boolean): Promise<boolean>;
+
+  /**
+   * Optional: Sends the user's reply (yes / no / maybe) to an invitation.
+   * Only called for events whose `attendance` is set. The caller re-syncs the
+   * calendar afterwards, so the provider does not need to update the cache.
+   * @param event The event as stored in the cache (a single event, an override, or a recurring master).
+   * @param response The reply to send.
+   * @param scope For recurring events, whether the reply covers one occurrence or the series.
+   * @param instanceDate The date of the occurrence the user opened, for `scope: 'instance'` on a recurring master.
+   */
+  setAttendance?(
+    event: OFCEvent,
+    response: AttendanceResponse,
+    scope: AttendanceScope,
+    instanceDate?: string
+  ): Promise<void>;
 
   /**
    * Optional: Called before a drag-and-drop scheduling action is committed.

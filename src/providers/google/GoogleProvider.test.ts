@@ -344,6 +344,150 @@ describe('GoogleProvider getEvents', () => {
   });
 });
 
+describe('GoogleProvider setAttendance', () => {
+  let provider: GoogleProvider;
+  const request = makeAuthenticatedRequest as unknown as jest.Mock<
+    Promise<unknown>,
+    [string, string, string?, { attendees: { responseStatus?: string }[] }?]
+  >;
+  const eventsUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+
+  const guestList = [
+    { email: 'organizer@example.com', organizer: true, responseStatus: 'accepted' },
+    { email: 'me@example.com', self: true, responseStatus: 'needsAction' }
+  ];
+
+  const singleEvent: OFCEvent = {
+    title: 'Planning',
+    type: 'single',
+    date: '2026-06-15',
+    endDate: null,
+    allDay: false,
+    startTime: '10:00',
+    endTime: '11:00',
+    uid: 'event_1',
+    attendance: 'needsAction'
+  };
+
+  const masterEvent: OFCEvent = {
+    title: 'Weekly Sync',
+    type: 'rrule',
+    startDate: '2026-06-01',
+    endDate: null,
+    rrule: 'FREQ=WEEKLY',
+    skipDates: [],
+    allDay: false,
+    startTime: '10:00',
+    endTime: '11:00',
+    timezone: 'America/Denver',
+    uid: 'master_1',
+    attendance: 'accepted'
+  };
+
+  beforeEach(() => {
+    provider = new GoogleProvider(
+      { id: 'google_1', name: 'My Google Calendar', calendarId: 'primary' },
+      { app: {} } as unknown as FullCalendarPlugin
+    );
+    jest.spyOn(provider['authManager'], 'getTokenForSource').mockResolvedValue('mock-token');
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('changes only the user reply and asks Google to notify the organizer', async () => {
+    request
+      .mockResolvedValueOnce({ id: 'event_1', attendees: guestList })
+      .mockResolvedValueOnce({});
+
+    await provider.setAttendance(singleEvent, 'declined', 'instance');
+
+    expect(request).toHaveBeenNthCalledWith(1, 'mock-token', `${eventsUrl}/event_1`);
+    expect(request).toHaveBeenNthCalledWith(
+      2,
+      'mock-token',
+      `${eventsUrl}/event_1?sendUpdates=all`,
+      'PATCH',
+      {
+        attendees: [
+          guestList[0],
+          { email: 'me@example.com', self: true, responseStatus: 'declined' }
+        ]
+      }
+    );
+  });
+
+  it('replies to one occurrence of a series by finding it by its original date', async () => {
+    request
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: 'master_1_20260608T160000Z',
+            originalStartTime: {
+              dateTime: '2026-06-08T10:00:00-06:00',
+              timeZone: 'America/Denver'
+            },
+            attendees: guestList
+          },
+          {
+            id: 'master_1_20260615T160000Z',
+            originalStartTime: {
+              dateTime: '2026-06-15T10:00:00-06:00',
+              timeZone: 'America/Denver'
+            },
+            attendees: guestList
+          }
+        ]
+      })
+      .mockResolvedValueOnce({});
+
+    await provider.setAttendance(masterEvent, 'tentative', 'instance', '2026-06-15');
+
+    expect(request.mock.calls[0][1]).toContain(`${eventsUrl}/master_1/instances?`);
+    expect(request.mock.calls[1][1]).toBe(`${eventsUrl}/master_1_20260615T160000Z?sendUpdates=all`);
+    expect(request.mock.calls[1][3]?.attendees[1].responseStatus).toBe('tentative');
+  });
+
+  it('replies on the series master when an override replies for all events', async () => {
+    const override: OFCEvent = {
+      ...singleEvent,
+      uid: 'master_1_20260615T160000Z',
+      recurringEventId: 'master_1'
+    };
+    request
+      .mockResolvedValueOnce({ id: 'master_1', attendees: guestList })
+      .mockResolvedValueOnce({});
+
+    await provider.setAttendance(override, 'accepted', 'series');
+
+    expect(request.mock.calls[0][1]).toBe(`${eventsUrl}/master_1`);
+    expect(request.mock.calls[1][1]).toBe(`${eventsUrl}/master_1?sendUpdates=all`);
+  });
+
+  it('keeps attendeesOmitted so Google does not drop the hidden guests', async () => {
+    request
+      .mockResolvedValueOnce({ id: 'event_1', attendeesOmitted: true, attendees: [guestList[1]] })
+      .mockResolvedValueOnce({});
+
+    await provider.setAttendance(singleEvent, 'accepted', 'instance');
+
+    expect(request.mock.calls[1][3]).toEqual({
+      attendees: [{ email: 'me@example.com', self: true, responseStatus: 'accepted' }],
+      attendeesOmitted: true
+    });
+  });
+
+  it('refuses to reply when the user is not on the guest list', async () => {
+    request.mockResolvedValueOnce({ id: 'event_1', attendees: [guestList[0]] });
+
+    await expect(provider.setAttendance(singleEvent, 'accepted', 'instance')).rejects.toThrow(
+      'not on the guest list'
+    );
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('GoogleProvider reminder mapping', () => {
   it('maps Google popup reminders to provider alarms', () => {
     const event = fromGoogleEvent({
@@ -561,8 +705,8 @@ describe('GoogleProvider display mapping', () => {
   });
 });
 
-describe('GoogleProvider declined events', () => {
-  it('filters out events where the user has declined the invite', () => {
+describe('GoogleProvider attendance mapping', () => {
+  it('keeps events the user declined and records the reply', () => {
     const event = fromGoogleEvent({
       id: 'google-event-1',
       summary: 'Declined Event',
@@ -574,7 +718,31 @@ describe('GoogleProvider declined events', () => {
       ]
     });
 
-    expect(event).toBeNull();
+    expect(event?.title).toBe('Declined Event');
+    expect(event?.attendance).toBe('declined');
+  });
+
+  it('records a tentative reply', () => {
+    const event = fromGoogleEvent({
+      id: 'google-event-1',
+      summary: 'Maybe Event',
+      start: { dateTime: '2026-06-15T10:00:00+02:00', timeZone: 'Europe/Amsterdam' },
+      end: { dateTime: '2026-06-15T11:00:00+02:00', timeZone: 'Europe/Amsterdam' },
+      attendees: [{ self: true, responseStatus: 'tentative' }]
+    });
+
+    expect(event?.attendance).toBe('tentative');
+  });
+
+  it('leaves attendance unset when the user is not on the guest list', () => {
+    const event = fromGoogleEvent({
+      id: 'google-event-1',
+      summary: 'Own Event',
+      start: { dateTime: '2026-06-15T10:00:00+02:00', timeZone: 'Europe/Amsterdam' },
+      end: { dateTime: '2026-06-15T11:00:00+02:00', timeZone: 'Europe/Amsterdam' }
+    });
+
+    expect(event?.attendance).toBeUndefined();
   });
 
   it('keeps events where the user has accepted or not responded', () => {
@@ -587,6 +755,7 @@ describe('GoogleProvider declined events', () => {
     });
     expect(event1).not.toBeNull();
     expect(event1?.title).toBe('Accepted Event');
+    expect(event1?.attendance).toBe('accepted');
 
     const event2 = fromGoogleEvent({
       id: 'google-event-2',
@@ -597,6 +766,7 @@ describe('GoogleProvider declined events', () => {
     });
     expect(event2).not.toBeNull();
     expect(event2?.title).toBe('Needs Action Event');
+    expect(event2?.attendance).toBe('needsAction');
   });
 
   it('keeps events with other declined attendees but user has not declined', () => {
@@ -612,6 +782,7 @@ describe('GoogleProvider declined events', () => {
     });
     expect(event).not.toBeNull();
     expect(event?.title).toBe('Other Declined Event');
+    expect(event?.attendance).toBe('accepted');
   });
 });
 

@@ -11,7 +11,7 @@
  */
 
 import { DateTime } from 'luxon';
-import { OFCEvent } from '../../../types/schema';
+import { OFCEvent, isAttendanceResponse } from '../../../types/schema';
 import { constructTitle } from '../../../features/category/categoryParser';
 import { rrulestr } from 'rrule';
 import { injectMeetingUrl } from '../../../utils/meetingUrl';
@@ -56,9 +56,12 @@ export interface GoogleEventLike {
     }[];
   };
   attendees?: {
+    email?: string;
     self?: boolean;
+    organizer?: boolean;
     responseStatus?: string;
   }[];
+  attendeesOmitted?: boolean;
   conferenceData?: {
     entryPoints?: {
       entryPointType?: string;
@@ -83,12 +86,6 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
     return null;
   }
 
-  const selfAttendee = gEvent.attendees?.find(attendee => attendee.self);
-  if (selfAttendee && selfAttendee.responseStatus === 'declined') {
-    // The user has declined the invitation / cancelled their participation.
-    return null;
-  }
-
   if (!gEvent.id || (!gEvent.start && !gEvent.end)) {
     // Not a valid event.
 
@@ -101,6 +98,12 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
 
   // We'll build up a partial raw event; cast at the end once required fields are ensured
   const eventData: Record<string, unknown> = { uid, recurringEventId };
+
+  // The user's own reply. Declined events are kept so the calendar can show them faded.
+  const selfResponse = gEvent.attendees?.find(attendee => attendee.self)?.responseStatus;
+  if (isAttendanceResponse(selfResponse)) {
+    eventData.attendance = selfResponse;
+  }
 
   // Title and Category Parsing
   eventData.title =

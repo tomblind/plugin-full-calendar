@@ -1293,7 +1293,8 @@
         "detailsNotFound": "Event details not found.",
         "parentNotFound": "Could not find the parent recurring event.",
         "updateError": "Error when updating event: {{message}}",
-        "deleteError": "Error when deleting event: {{message}}"
+        "deleteError": "Error when deleting event: {{message}}",
+        "attendanceError": "Could not send your reply: {{message}}"
       },
       "confirmations": {
         "editParentTitle": "Edit Parent Event?",
@@ -1379,6 +1380,12 @@
           },
           "yearlyText": "Repeats every year on {{date}}.",
           "endRepeat": "End Repeat"
+        },
+        "attendance": {
+          "label": "Going?",
+          "yes": "Yes",
+          "no": "No",
+          "maybe": "Maybe"
         }
       },
       "tooltips": {
@@ -1643,6 +1650,13 @@
         "save": "Save",
         "cancel": "Cancel"
       }
+    },
+    "attendanceScope": {
+      "title": "Reply to recurring event",
+      "description": "Should your reply apply to only this event, or to every event in the series?",
+      "thisEvent": "This event",
+      "allEvents": "All events",
+      "cancel": "Cancel"
     }
   },
   "google": {

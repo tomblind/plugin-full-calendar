@@ -1283,7 +1283,8 @@
         "detailsNotFound": "Détails de l'événement introuvables.",
         "parentNotFound": "Impossible de trouver l'événement récurrent parent.",
         "updateError": "Erreur lors de la mise à jour de l'événement : {{message}}",
-        "deleteError": "Erreur lors de la suppression de l'événement : {{message}}"
+        "deleteError": "Erreur lors de la suppression de l'événement : {{message}}",
+        "attendanceError": "Impossible d'envoyer votre réponse : {{message}}"
       },
       "confirmations": {
         "editParentTitle": "Modifier l'événement parent ?",
@@ -1369,6 +1370,12 @@
         },
         "description": {
           "placeholder": "Ajouter une description..."
+        },
+        "attendance": {
+          "label": "Participer ?",
+          "yes": "Oui",
+          "no": "Non",
+          "maybe": "Peut-être"
         }
       },
       "tooltips": {
@@ -1638,6 +1645,13 @@
       "title": "Select a Template Preset",
       "description": "Choose a template to use for creating this linked note:",
       "cancel": "Cancel"
+    },
+    "attendanceScope": {
+      "title": "Répondre à un événement périodique",
+      "description": "Votre réponse doit-elle s'appliquer uniquement à cet événement ou à tous les événements de la série ?",
+      "thisEvent": "Cet événement",
+      "allEvents": "Tous les événements",
+      "cancel": "Annuler"
     }
   },
   "google": {

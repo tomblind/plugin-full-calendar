@@ -264,6 +264,27 @@
     opacity: 0.55;
 }
 
+.ofc-calendar-shell .ofc-attendance-declined,
+.ofc-embedded-calendar-container .ofc-attendance-declined {
+    opacity: 0.55;
+}
+
+.ofc-calendar-shell .ofc-attendance-declined .fc-event-title,
+.ofc-calendar-shell .ofc-attendance-declined .fc-list-event-title,
+.ofc-embedded-calendar-container .ofc-attendance-declined .fc-event-title,
+.ofc-embedded-calendar-container .ofc-attendance-declined .fc-list-event-title {
+    text-decoration: line-through;
+}
+
+.ofc-calendar-shell .ofc-attendance-tentative,
+.ofc-embedded-calendar-container .ofc-attendance-tentative {
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent 0 6px,
+        rgba(255, 255, 255, 0.35) 6px 12px
+    );
+}
+
 .ofc-calendar-shell .ofc-checkbox-white,
 .ofc-embedded-calendar-container .ofc-checkbox-white {
     border-color: white;
@@ -355,6 +376,15 @@
 }
 
 .full-calendar-edit-modal .ofc-time-inputs-wrap input[type="time"] {
+    flex: 1;
+}
+
+.full-calendar-edit-modal .ofc-attendance-group {
+    display: flex;
+    gap: 8px;
+}
+
+.full-calendar-edit-modal .ofc-attendance-group button {
     flex: 1;
 }
 

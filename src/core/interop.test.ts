@@ -78,6 +78,27 @@ describe('interop toEventInput tests', () => {
       expect(result!.allDay).toBe(false);
     });
 
+    it('should mark declined and tentative invites with attendance classes', () => {
+      const invite = (attendance: OFCEvent['attendance']) =>
+        ({
+          type: 'single',
+          title: 'Invite',
+          date: '2026-06-15',
+          allDay: true,
+          endDate: null,
+          attendance
+        }) as OFCEvent;
+
+      expect(toEventInput('a', invite('declined'), baseSettings)!.classNames).toEqual([
+        'ofc-attendance-declined'
+      ]);
+      expect(toEventInput('b', invite('tentative'), baseSettings)!.classNames).toEqual([
+        'ofc-attendance-tentative'
+      ]);
+      expect(toEventInput('c', invite('accepted'), baseSettings)!.classNames).toBeUndefined();
+      expect(toEventInput('d', invite(undefined), baseSettings)!.classNames).toBeUndefined();
+    });
+
     it('should preserve duplicate suffix token in converted title', () => {
       const event = {
         type: 'single',

@@ -162,7 +162,11 @@ export function toEventInput(
       isShadow: false // Flag to identify the real event
     },
     // Support for background events and other display types
-    ...(event.display && { display: event.display })
+    ...(event.display && { display: event.display }),
+    // Declined invites are faded and "maybe" replies are striped, as in Google Calendar.
+    ...((event.attendance === 'declined' || event.attendance === 'tentative') && {
+      classNames: [`ofc-attendance-${event.attendance}`]
+    })
   };
 
   // Assign category-level coloring

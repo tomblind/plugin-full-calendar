@@ -1283,7 +1283,8 @@
         "detailsNotFound": "未找到事件详情。",
         "parentNotFound": "无法找到父重复事件。",
         "updateError": "更新事件时出错：{{message}}",
-        "deleteError": "删除事件时出错：{{message}}"
+        "deleteError": "删除事件时出错：{{message}}",
+        "attendanceError": "无法发送回复：{{message}}"
       },
       "confirmations": {
         "editParentTitle": "编辑父事件？",
@@ -1369,6 +1370,12 @@
         },
         "description": {
           "placeholder": "添加描述..."
+        },
+        "attendance": {
+          "label": "是否参加？",
+          "yes": "是",
+          "no": "否",
+          "maybe": "可能"
         }
       },
       "tooltips": {
@@ -1638,6 +1645,13 @@
       "title": "Select a Template Preset",
       "description": "Choose a template to use for creating this linked note:",
       "cancel": "Cancel"
+    },
+    "attendanceScope": {
+      "title": "回复重复活动",
+      "description": "你的回复只适用于此活动，还是适用于该系列中的所有活动？",
+      "thisEvent": "此活动",
+      "allEvents": "所有活动",
+      "cancel": "取消"
     }
   },
   "google": {

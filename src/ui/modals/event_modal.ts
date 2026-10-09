@@ -24,7 +24,7 @@ import * as React from 'react';
 import ReactModal from '../ReactModal';
 import { TFile } from 'obsidian';
 
-import { OFCEvent } from '../../types';
+import { AttendanceResponse, OFCEvent } from '../../types';
 import { EditEvent } from './EditEvent';
 import { EventDetails } from './EventDetails';
 import FullCalendarPlugin from '../../main';
@@ -34,6 +34,8 @@ import { openLinkedFileInExistingLeafOrNew } from '../../utils/leafUtils';
 import { t } from '../../features/i18n/i18n';
 import { LinkedNoteIndex } from '../../providers/utils/LinkedNoteIndex';
 import { selectDefaultCalendar } from '../../utils/writableCalendars';
+import { AttendanceScope } from '../../providers/Provider';
+import { chooseAttendanceScope } from './AttendanceScopeModal';
 
 export function launchCreateModal(
   plugin: FullCalendarPlugin,
@@ -136,6 +138,35 @@ export function launchEditModal(
   const calIdx = calendars.findIndex(({ id }) => id === calId);
   const availableCategories = PluginState.getCache().getAllCategories();
 
+  const sendAttendance = provider?.setAttendance?.bind(provider);
+  let replySent = false;
+  const onSetAttendance =
+    sendAttendance && eventToEdit.attendance
+      ? async (response: AttendanceResponse): Promise<boolean> => {
+          const isMaster = eventToEdit.type === 'rrule' || eventToEdit.type === 'recurring';
+          let scope: AttendanceScope = 'instance';
+          if (isMaster && !instanceDate) {
+            // Opened as the series itself, so there is no single occurrence to reply to.
+            scope = 'series';
+          } else if (isMaster || eventToEdit.recurringEventId) {
+            const chosen = await chooseAttendanceScope(plugin.app);
+            if (!chosen) return false;
+            scope = chosen;
+          }
+          try {
+            await sendAttendance(eventToEdit, response, scope, instanceDate);
+            replySent = true;
+            PluginState.getProviderRegistry().reloadProviderNow(calId);
+            return true;
+          } catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            showNotice(t('modals.editEvent.errors.attendanceError', { message }));
+            console.error(e);
+            return false;
+          }
+        }
+      : undefined;
+
   new ReactModal(plugin.app, closeModal => {
     const onAttemptEditInherited = () => {
       new ConfirmModal(
@@ -183,6 +214,10 @@ export function launchEditModal(
             } else {
               await PluginState.getCache().updateEventWithId(eventId, data);
             }
+            if (replySent) {
+              // The save wrote the reply the window opened with, so fetch the new one again.
+              PluginState.getProviderRegistry().reloadProviderNow(calId);
+            }
           } catch (e) {
             if (e instanceof Error) {
               showNotice(t('modals.editEvent.errors.updateError', { message: e.message }));
@@ -214,6 +249,7 @@ export function launchEditModal(
           }
         },
         onAttemptEditInherited, // Pass the new handler as a prop
+        onSetAttendance,
         mode: 'edit'
       })
     );

@@ -59,6 +59,13 @@ export const TimeSchema = z.discriminatedUnion('allDay', [
   })
 ]);
 
+export const ATTENDANCE_RESPONSES = ['accepted', 'declined', 'tentative', 'needsAction'] as const;
+export type AttendanceResponse = (typeof ATTENDANCE_RESPONSES)[number];
+
+export function isAttendanceResponse(value: unknown): value is AttendanceResponse {
+  return (ATTENDANCE_RESPONSES as readonly unknown[]).includes(value);
+}
+
 // MODIFICATION HAPPENS HERE
 export const CommonSchema = z.object({
   title: z.string(), // This will now store the CLEAN title.
@@ -95,6 +102,8 @@ export const CommonSchema = z.object({
   category: z.string().optional(), // This will store the parsed category.
   subCategory: z.string().optional(),
   recurringEventId: z.string().optional(), // The ID of the parent recurring event.
+  // The user's own reply to an invitation, when the provider reports one.
+  attendance: z.enum(ATTENDANCE_RESPONSES).optional(),
   endReminder: z.boolean().optional(),
   display: z
     .enum(['auto', 'block', 'list-item', 'background', 'inverse-background', 'none'])

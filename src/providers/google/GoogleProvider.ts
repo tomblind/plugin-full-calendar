@@ -1,12 +1,17 @@
 import { PluginState } from '../../core/PluginState';
 import { DateTime } from 'luxon';
-import { OFCEvent, EventLocation, validateEvent } from '../../types';
+import { OFCEvent, EventLocation, validateEvent, AttendanceResponse } from '../../types';
 import FullCalendarPlugin from '../../main';
 import { fromGoogleEvent, toGoogleEvent, GoogleEventLike } from './parser/parser_gcal';
 import { makeAuthenticatedRequest, GoogleApiError } from './auth/request';
 import { GOOGLE_DISPLAY_PROPERTY } from '../utils/displayProperty';
 
-import { CalendarProvider, CalendarProviderCapabilities, SyncKeyProvider } from '../Provider';
+import {
+  AttendanceScope,
+  CalendarProvider,
+  CalendarProviderCapabilities,
+  SyncKeyProvider
+} from '../Provider';
 import { EventHandle, FCReactComponent, ProviderConfigContext } from '../typesProvider';
 import { GoogleProviderConfig } from './typesGCal';
 
@@ -457,6 +462,109 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig>, S
     throw new Error(
       'Modifying a single instance of an all-day recurring event is not yet supported for Google Calendars.'
     );
+  }
+
+  async setAttendance(
+    event: OFCEvent,
+    response: AttendanceResponse,
+    scope: AttendanceScope,
+    instanceDate?: string
+  ): Promise<void> {
+    const token = await this.authManager.getTokenForSource({
+      type: 'google',
+      id: this.source.id,
+      name: this.source.name,
+      calendarId: this.source.calendarId,
+      googleAccountId: this.source.googleAccountId,
+      color: ''
+    });
+    if (!token) throw new GoogleApiError('Cannot reply to event: not authenticated.');
+
+    const eventsUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
+      this.source.calendarId
+    )}/events`;
+    const isMaster = event.type === 'rrule' || event.type === 'recurring';
+
+    let target: GoogleEventLike;
+    if (scope === 'series' && event.recurringEventId) {
+      // An override replying for the whole series: reply on its master.
+      target = await makeAuthenticatedRequest<GoogleEventLike>(
+        token,
+        `${eventsUrl}/${encodeURIComponent(event.recurringEventId)}`
+      );
+    } else if (scope === 'instance' && isMaster) {
+      if (!event.uid || !instanceDate) {
+        throw new Error('Cannot reply to one occurrence without its series ID and date.');
+      }
+      target = await this.findInstance(token, eventsUrl, event.uid, instanceDate);
+    } else {
+      if (!event.uid) throw new Error('Cannot reply to an event that has no Google ID.');
+      target = await makeAuthenticatedRequest<GoogleEventLike>(
+        token,
+        `${eventsUrl}/${encodeURIComponent(event.uid)}`
+      );
+    }
+
+    if (!target.id) throw new Error('Google did not return an event ID.');
+    if (!target.attendees?.some(attendee => attendee.self)) {
+      throw new Error('You are not on the guest list for this event.');
+    }
+
+    // Google replaces the whole guest list on PATCH, so send it back with only our reply changed.
+    // When the list is too long, Google returns only our own entry and `attendeesOmitted`.
+    const body: Record<string, unknown> = {
+      attendees: target.attendees.map(attendee =>
+        attendee.self ? { ...attendee, responseStatus: response } : attendee
+      )
+    };
+    if (target.attendeesOmitted) {
+      body.attendeesOmitted = true;
+    }
+
+    await makeAuthenticatedRequest(
+      token,
+      `${eventsUrl}/${encodeURIComponent(target.id)}?sendUpdates=all`,
+      'PATCH',
+      body
+    );
+  }
+
+  /**
+   * Finds one occurrence of a recurring series by its original date. `instanceDate`
+   * is in the event's own timezone, which is how Google labels `originalStartTime`.
+   */
+  private async findInstance(
+    token: string,
+    eventsUrl: string,
+    masterId: string,
+    instanceDate: string
+  ): Promise<GoogleEventLike> {
+    const day = DateTime.fromISO(instanceDate, { zone: 'utc' });
+    const url = new URL(`${eventsUrl}/${encodeURIComponent(masterId)}/instances`);
+    // Search a day either side so timezone offsets cannot push the occurrence out of range.
+    url.searchParams.set('timeMin', day.minus({ days: 1 }).toISO() ?? '');
+    url.searchParams.set('timeMax', day.plus({ days: 2 }).toISO() ?? '');
+    url.searchParams.set('showDeleted', 'false');
+
+    const data = await makeAuthenticatedRequest<{ items?: GoogleEventLike[] }>(
+      token,
+      url.toString()
+    );
+    const match = (data.items ?? []).find(instance => {
+      const original = instance.originalStartTime;
+      if (original?.date) return original.date === instanceDate;
+      if (original?.dateTime) {
+        return (
+          DateTime.fromISO(original.dateTime, { zone: original.timeZone || 'utc' }).toISODate() ===
+          instanceDate
+        );
+      }
+      return false;
+    });
+    if (!match) {
+      throw new Error(`Could not find the occurrence on ${instanceDate} in Google Calendar.`);
+    }
+    return match;
   }
 
   getConfigurationComponent(): FCReactComponent<GoogleConfigProps> {

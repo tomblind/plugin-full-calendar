@@ -14,7 +14,7 @@
 import { DateTime } from 'luxon';
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { CalendarInfo, OFCEvent } from '../../types';
+import { AttendanceResponse, CalendarInfo, OFCEvent } from '../../types';
 import { AutocompleteInput } from '../components/forms/AutocompleteInput';
 import { parseSubcategoryTitle } from '../../features/category/categoryParser';
 import { t } from '../../features/i18n/i18n';
@@ -100,8 +100,19 @@ interface EditEventProps {
   open?: () => Promise<void>;
   deleteEvent?: () => Promise<void>;
   onAttemptEditInherited?: () => void;
+  /**
+   * Sends a reply to an invitation. Resolves to true when the reply was sent,
+   * or false when the user cancelled or sending failed.
+   */
+  onSetAttendance?: (response: AttendanceResponse) => Promise<boolean>;
   mode: 'create' | 'edit';
 }
+
+const ATTENDANCE_CHOICES: { response: AttendanceResponse; labelKey: string }[] = [
+  { response: 'accepted', labelKey: 'modals.editEvent.fields.attendance.yes' },
+  { response: 'declined', labelKey: 'modals.editEvent.fields.attendance.no' },
+  { response: 'tentative', labelKey: 'modals.editEvent.fields.attendance.maybe' }
+];
 
 type EventCalendarOption = {
   value: string;
@@ -193,6 +204,7 @@ export const EditEvent = ({
   enableBackgroundEvents = false,
   enableReminders, // ADD THIS
   onAttemptEditInherited,
+  onSetAttendance,
   mode
 }: EditEventProps) => {
   const isChildOverride = !!initialEvent?.recurringEventId;
@@ -229,6 +241,20 @@ export const EditEvent = ({
   );
   const isRecurring = recurrenceType !== 'none';
   const [allDay, setAllDay] = useState(initialEvent?.allDay || false);
+  const [attendance, setAttendance] = useState(initialEvent?.attendance);
+  const [sendingAttendance, setSendingAttendance] = useState(false);
+
+  const handleAttendanceClick = async (response: AttendanceResponse) => {
+    if (!onSetAttendance || sendingAttendance || response === attendance) return;
+    setSendingAttendance(true);
+    try {
+      if (await onSetAttendance(response)) {
+        setAttendance(response);
+      }
+    } finally {
+      setSendingAttendance(false);
+    }
+  };
   const [calendarIndex, setCalendarIndex] = useState(defaultCalendarIndex);
   const calendarOptions = getEventCalendarOptions(calendars);
   const [isTask, setIsTask] = useState(
@@ -405,6 +431,8 @@ export const EditEvent = ({
         providerNotifyValue,
         initialEvent?.alarms
       ),
+      // Replies are sent to the provider directly, so saving keeps the reply the event loaded with.
+      ...(initialEvent?.attendance && { attendance: initialEvent.attendance }),
       ...timeInfo,
       ...eventData
     } as OFCEvent;
@@ -581,6 +609,30 @@ export const EditEvent = ({
             </label>
           </div>
         </div>
+
+        {attendance && onSetAttendance && (
+          <div className="setting-item">
+            <div className="setting-item-info">
+              <div className="setting-item-name">
+                {t('modals.editEvent.fields.attendance.label')}
+              </div>
+            </div>
+            <div className="setting-item-control ofc-attendance-group">
+              {ATTENDANCE_CHOICES.map(({ response, labelKey }) => (
+                <button
+                  key={response}
+                  type="button"
+                  className={attendance === response ? 'mod-cta' : ''}
+                  aria-pressed={attendance === response}
+                  disabled={sendingAttendance}
+                  onClick={() => void handleAttendanceClick(response)}
+                >
+                  {t(labelKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="setting-item">
           <div className="setting-item-info">
