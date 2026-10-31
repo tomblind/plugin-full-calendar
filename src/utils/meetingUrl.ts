@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { openExternalUrl } from './openExternalUrl';
 
 /**
  * Injects a meeting URL into location or description.
@@ -29,6 +30,15 @@ export function injectMeetingUrl(
 }
 
 /**
+ * Click handler for event links. Opens the URL in the system browser instead of
+ * inside Obsidian, so meeting links (Zoom, Teams) can launch their apps.
+ */
+export function openLinkExternally(e: React.MouseEvent<HTMLAnchorElement>, url: string): void {
+  e.preventDefault();
+  openExternalUrl(url);
+}
+
+/**
  * Splits text by URL patterns and returns a mix of strings and clickable React <a> elements.
  */
 export function linkify(text: string): React.ReactNode {
@@ -45,7 +55,8 @@ export function linkify(text: string): React.ReactNode {
             href: part,
             target: '_blank',
             rel: 'noopener noreferrer',
-            className: 'event-link'
+            className: 'event-link',
+            onClick: (e: React.MouseEvent<HTMLAnchorElement>) => openLinkExternally(e, part)
           },
           part
         );

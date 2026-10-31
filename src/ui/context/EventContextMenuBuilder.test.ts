@@ -1,6 +1,13 @@
 import { getContextMenuCapabilities } from './EventContextMenuBuilder';
 
 const mockMenuItems: { title: string; onClick?: () => void }[] = [];
+const mockOpenExternalUrl = jest.fn();
+
+jest.mock('../../utils/openExternalUrl', () => ({
+  openExternalUrl: (url: string): void => {
+    mockOpenExternalUrl(url);
+  }
+}));
 
 jest.mock(
   'obsidian',
@@ -391,8 +398,8 @@ describe('EventContextMenuBuilder location URL actions', () => {
     expect(item).toBeDefined();
   });
 
-  it('calls window.open with the location URL when clicked', async () => {
-    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+  it('opens the location URL in the system browser when clicked', async () => {
+    mockOpenExternalUrl.mockClear();
 
     const { openEventContextMenu } = await import('./EventContextMenuBuilder');
     const { mockEventApi } = await makeContextMenuSetup({
@@ -410,8 +417,7 @@ describe('EventContextMenuBuilder location URL actions', () => {
     item?.onClick?.();
     await new Promise(resolve => window.setTimeout(resolve, 10));
 
-    expect(openSpy).toHaveBeenCalledWith('https://meet.google.com/abc-def', '_blank');
-    openSpy.mockRestore();
+    expect(mockOpenExternalUrl).toHaveBeenCalledWith('https://meet.google.com/abc-def');
   });
 
   it('does NOT show location menu item when location is a plain string', async () => {

@@ -1,6 +1,14 @@
 import * as React from 'react';
 import { injectMeetingUrl, linkify } from './meetingUrl';
 
+const mockOpenExternalUrl = jest.fn();
+
+jest.mock('./openExternalUrl', () => ({
+  openExternalUrl: (url: string): void => {
+    mockOpenExternalUrl(url);
+  }
+}));
+
 describe('meetingUrl utilities', () => {
   describe('injectMeetingUrl', () => {
     it('injects meeting URL into location if location is empty', () => {
@@ -39,6 +47,17 @@ describe('meetingUrl utilities', () => {
   });
 
   describe('linkify', () => {
+    it('opens a clicked link in the system browser instead of inside Obsidian', () => {
+      const result = linkify('https://zoom.us/j/123') as React.ReactElement[];
+      const props = result[0].props as {
+        onClick: (e: { preventDefault: () => void }) => void;
+      };
+      const preventDefault = jest.fn();
+      props.onClick({ preventDefault });
+      expect(preventDefault).toHaveBeenCalled();
+      expect(mockOpenExternalUrl).toHaveBeenCalledWith('https://zoom.us/j/123');
+    });
+
     it('returns empty string if input is empty', () => {
       expect(linkify('')).toBe('');
     });

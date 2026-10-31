@@ -4,7 +4,7 @@ import { t } from '../../features/i18n/i18n';
 import { DateTime } from 'luxon';
 import { setIcon } from 'obsidian';
 import { rrulestr } from 'rrule';
-import { linkify } from '../../utils/meetingUrl';
+import { linkify, openLinkExternally } from '../../utils/meetingUrl';
 import { resolveEffectiveTimezone } from '../../features/timezone/Timezone';
 
 interface EventDetailsProps {
@@ -160,6 +160,7 @@ export const EventDetails: React.FC<EventDetailsProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="event-link"
+                  onClick={e => openLinkExternally(e, event.url ?? '')}
                 >
                   {event.url}
                 </a>

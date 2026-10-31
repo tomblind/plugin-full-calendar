@@ -9,6 +9,7 @@ import {
   ProviderEventContext
 } from '../../providers/Provider';
 import { t } from '../../features/i18n/i18n';
+import { openExternalUrl } from '../../utils/openExternalUrl';
 import { LinkedNoteIndex } from '../../providers/utils/LinkedNoteIndex';
 import { OFCEvent, isRecurringEvent } from '../../types';
 import { getEventInstanceDate } from '../../features/timezone/Timezone';
@@ -101,7 +102,8 @@ export async function openEventContextMenu(
           title: t('ui.view.contextMenu.openLocationUrl'),
           icon: 'external-link',
           run: async () => {
-            window.open(locationStr, '_blank');
+            // Open in the system browser so meeting links (Zoom, Teams) can launch their apps.
+            openExternalUrl(locationStr);
           }
         }
       ],
