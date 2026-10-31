@@ -232,6 +232,23 @@ export default class EventCache {
   }
 
   /**
+   * Returns every unique location used by an event, most used first.
+   * Used for location suggestions in the event editor.
+   */
+  getAllLocations(): string[] {
+    const counts = new Map<string, number>();
+    for (const storedEvent of this._store.getAllEvents()) {
+      const location = storedEvent.event.location?.trim();
+      if (location) {
+        counts.set(location, (counts.get(location) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([location]) => location);
+  }
+
+  /**
    * Get all events from the cache in a FullCalendar-friendly format.
    * @returns EventSourceInputs for FullCalendar.
    */

@@ -255,6 +255,7 @@ export interface FullCalendarSettings {
   breakTimer: BreakTimerSettings;
   availabilityDefaultTimeRange: { startTime: string; endTime: string };
   openDailyNoteOnDateClick: boolean;
+  enableOnlineLocationSuggestions: boolean;
   agent: AgentSettings;
 }
 
@@ -383,6 +384,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   enableLinkedNoteTemplatesPreset: false,
   linkedNoteTemplatesPresets: [],
   openDailyNoteOnDateClick: false,
+  enableOnlineLocationSuggestions: true,
   breakTimer: {
     enabled: false,
     intervalMins: 60,

@@ -294,6 +294,10 @@
         "label": "Open daily note on date click",
         "description": "Left-click on date column headers or Month view day numbers to open or create the daily note."
       },
+      "onlineLocationSuggestions": {
+        "label": "Online location suggestions",
+        "description": "While you type a location in the event editor, also suggest addresses from Photon (photon.komoot.io), a free OpenStreetMap search service. The typed text is sent to that service. Locations from your existing events are always suggested."
+      },
       "loadDebugTiming": {
         "label": "Enable load debug timing",
         "description": "Measure and log detailed execution timing breakdown for initial plugin startup, stage loading, and each calendar provider.",
@@ -1311,7 +1315,10 @@
           "placeholder": "Category (optional)"
         },
         "location": {
-          "placeholder": "Add location..."
+          "placeholder": "Add location...",
+          "pastHeading": "From your events",
+          "placesHeading": "Places",
+          "searching": "Searching..."
         },
         "description": {
           "placeholder": "Add description..."

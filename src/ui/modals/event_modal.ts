@@ -36,6 +36,23 @@ import { LinkedNoteIndex } from '../../providers/utils/LinkedNoteIndex';
 import { selectDefaultCalendar } from '../../utils/writableCalendars';
 import { AttendanceScope } from '../../providers/Provider';
 import { chooseAttendanceScope } from './AttendanceScopeModal';
+import { searchPlaces } from '../../features/location/locationSuggestions';
+
+/**
+ * Location suggestion props for the event editor. Online search is left out
+ * when the user turned it off. Results near the weather location rank higher.
+ */
+function getLocationSuggestionProps() {
+  const settings = PluginState.getSettings();
+  const { weatherLatitude: latitude, weatherLongitude: longitude } = settings;
+  const bias = latitude !== null && longitude !== null ? { latitude, longitude } : null;
+  return {
+    availableLocations: PluginState.getCache().getAllLocations(),
+    searchPlaces: settings.enableOnlineLocationSuggestions
+      ? (query: string) => searchPlaces(query, bias)
+      : undefined
+  };
+}
 
 export function launchCreateModal(
   plugin: FullCalendarPlugin,
@@ -59,6 +76,7 @@ export function launchCreateModal(
         calendars,
         defaultCalendarIndex: finalCalIdx,
         availableCategories,
+        ...getLocationSuggestionProps(),
         enableCategory: PluginState.getSettings().enableAdvancedCategorization,
         enableBackgroundEvents: PluginState.getSettings().enableBackgroundEvents,
         enableReminders: PluginState.getSettings().enableReminders,
@@ -197,6 +215,7 @@ export function launchEditModal(
         calendars,
         defaultCalendarIndex: calIdx,
         availableCategories,
+        ...getLocationSuggestionProps(),
         enableCategory: PluginState.getSettings().enableAdvancedCategorization,
         enableBackgroundEvents: PluginState.getSettings().enableBackgroundEvents,
         enableReminders: PluginState.getSettings().enableReminders,

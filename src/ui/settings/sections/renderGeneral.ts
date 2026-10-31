@@ -130,6 +130,17 @@ export function renderGeneralSettings(
     });
 
   new Setting(containerEl)
+    .setName(t('settings.general.onlineLocationSuggestions.label'))
+    .setDesc(t('settings.general.onlineLocationSuggestions.description'))
+    .addToggle(toggle => {
+      toggle.setValue(PluginState.getSettings().enableOnlineLocationSuggestions);
+      toggle.onChange(async val => {
+        PluginState.getSettings().enableOnlineLocationSuggestions = val;
+        await PluginState.saveSettings();
+      });
+    });
+
+  new Setting(containerEl)
     .setName(t('settings.general.loadDebugTiming.label'))
     .setDesc(t('settings.general.loadDebugTiming.description'))
     .addButton(button => {

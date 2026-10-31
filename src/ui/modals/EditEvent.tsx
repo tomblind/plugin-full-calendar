@@ -16,6 +16,7 @@ import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { AttendanceResponse, CalendarInfo, OFCEvent } from '../../types';
 import { AutocompleteInput } from '../components/forms/AutocompleteInput';
+import { LocationInput } from '../components/forms/LocationInput';
 import { parseSubcategoryTitle } from '../../features/category/categoryParser';
 import { t } from '../../features/i18n/i18n';
 import { setIcon } from 'obsidian';
@@ -94,6 +95,10 @@ interface EditEventProps {
   defaultCalendarIndex: number;
   initialEvent?: Partial<OFCEvent>;
   availableCategories?: string[];
+  /** Locations used by existing events, most used first. */
+  availableLocations?: string[];
+  /** Online place search for the location box. Omitted when online search is turned off. */
+  searchPlaces?: (query: string) => Promise<string[]>;
   enableCategory: boolean;
   enableBackgroundEvents?: boolean;
   enableReminders: boolean; // ADD THIS
@@ -200,6 +205,8 @@ export const EditEvent = ({
   calendars,
   defaultCalendarIndex,
   availableCategories = [],
+  availableLocations = [],
+  searchPlaces,
   enableCategory,
   enableBackgroundEvents = false,
   enableReminders, // ADD THIS
@@ -497,13 +504,14 @@ export const EditEvent = ({
           )}
 
           <div className="premium-field-col">
-            <div className="ofc-premium-input-wrap">
+            <div className="ofc-premium-input-wrap ofc-location-field">
               <Icon name="map-pin" />
-              <input
-                type="text"
+              <LocationInput
                 value={location}
+                onChange={setLocation}
                 placeholder={t('modals.editEvent.fields.location.placeholder') || 'Add location...'}
-                onChange={e => setLocation(e.target.value)}
+                pastLocations={availableLocations}
+                searchPlaces={searchPlaces}
               />
             </div>
           </div>
