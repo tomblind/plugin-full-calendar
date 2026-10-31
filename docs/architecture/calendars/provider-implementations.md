@@ -13,13 +13,13 @@
 | Local       | Obsidian Bases        | `10`  | Stage 0 local sync. Evaluates `.base` filters and frontmatter date fields. Read-only. |
 | Integration | Tasks                 | `30`  | Stage 0 local sync. Plugin cache integration, surgical markdown line updates. |
 | Integration | TaskNotes             | `40`  | Stage 0 local sync. Service/UI integration with provider-owned NLP endpoint. |
-| Virtual     | Holidays              | `5`   | Stage 0 virtual. Computed on-the-fly from bundled data; no vault/network backing. |
+| Virtual     | Holidays              | `50`  | Stage 0 local sync. Computed from bundled holiday definitions; lowered priority prevents blocking critical notes. |
+| Remote      | ICS                   | `100` | Stage 1 remote async. Read-only hybrid provider (HTTP URL & local file); skips Stage 2 via contract. |
 | Remote      | CalDAV                | `110` | Stage 1 & 2 remote async. RFC 4791 protocol support with defensive fallback. |
-| Remote      | CalDAV Tasks          | `115` | Stage 1 & 2 remote async. CalDAV VTODO task collection synchronization. |
-| Remote      | Google                | `120` | Stage 1 & 2 remote async. OAuth authenticated sync with recurrence handling. |
-| Remote      | Google Tasks          | `125` | Stage 1 & 2 remote async. Tasks API integration with union OAuth scope preservation. |
-| Remote      | ICS                   | `140` | Stage 1 & 2 remote async. Read-only hybrid provider (HTTP URL & local file). |
-| Remote      | Outlook               | `150` | Stage 1 & 2 remote async. OAuth Code + PKCE Graph API sync. |
+| Remote      | CalDAV Tasks          | `115` | Stage 1 remote async. CalDAV VTODO task collection synchronization; skips Stage 2 via contract. |
+| Remote      | Google                | `120` | Stage 1 remote async. OAuth authenticated sync with recurrence handling; skips Stage 2 via contract. |
+| Remote      | Google Tasks          | `125` | Stage 1 remote async. Tasks API integration with union OAuth scope preservation; skips Stage 2 via contract. |
+| Remote      | Outlook               | `125` | Stage 1 remote async. OAuth Code + PKCE Graph API sync; skips Stage 2 via contract. |
 
 ## Key implementation notes
 
@@ -49,6 +49,8 @@ Creates one-note-per-event records, supports full CRUD, and uses robust filename
 **Location & Description Mapping**: Parses and writes `location` (geographic/logical address) and `description` (multiline text) dynamically inside the note's YAML frontmatter block.
 
 **Frontmatter Serialization & Colon Safety**: All string properties in frontmatter are escaped and double-quoted by default when serialized (`escapeYamlString` in `frontmatter.ts` and `noteUtils.ts`). This prevents unquoted colons (`title: Super: Event`) from breaking Obsidian's YAML metadata parser. When reading note files, `getEventsInFile` utilizes `parseFrontmatterWithFallback` if Obsidian's `metadataCache` fails or returns unparsed metadata due to unquoted colons in historical or manually-edited notes.
+
+**Multiline YAML Block Literals (`|-`) & Blank-Line Preservation**: Multiline fields (such as descriptions) are serialized using YAML block-literal style (`|-`) with strict 2-space indentation and CRLF normalization. The frontmatter update engine in `modifyFrontmatterString` uses forward lookahead scanning to preserve empty lines inside note bodies and prevents accidental line erasure during edits.
 
 **Recurrence rules**: Supports weekly, monthly (including specific weekday `repeatOn`), yearly, and daily (`fcrDaily` with optional `repeatInterval`) recurring events. Files for daily recurring events are named with `(Every day)` or `(Every X days)` to provide clean visual identification.
 

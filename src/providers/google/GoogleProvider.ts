@@ -97,6 +97,7 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig>, S
   readonly displayName = 'Google Calendar';
   readonly isRemote = true;
   readonly loadPriority = 120;
+  readonly supportsSecondStage = false;
 
   constructor(source: GoogleProviderConfig, plugin: FullCalendarPlugin, _app?: ObsidianInterface) {
     this.plugin = plugin;
@@ -259,7 +260,7 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig>, S
         const validated = validateEvent(rawEvent);
         if (!validated) return null;
 
-        const linkedFile = this.linkedNoteIndex.getFileForEvent(validated.uid || '');
+        const linkedFile = this.linkedNoteIndex.resolveLinkedFile(validated);
         const location = linkedFile
           ? { file: { path: linkedFile.path }, lineNumber: undefined }
           : null;
@@ -434,34 +435,31 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig>, S
     });
     if (!token) throw new GoogleApiError('Cannot create instance override: not authenticated.');
 
-    if (newEventData.allDay === false && masterEvent.allDay === false) {
-      const originalStartTime = {
-        dateTime: DateTime.fromISO(`${instanceDate}T${masterEvent.startTime}`).toISO(),
-        timeZone: masterEvent.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
-      };
+    const originalStartTime = masterEvent.allDay
+      ? { date: instanceDate }
+      : {
+          dateTime: DateTime.fromISO(`${instanceDate}T${masterEvent.startTime}`).toISO(),
+          timeZone: masterEvent.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+        };
 
-      const body = {
-        ...toGoogleEvent(newEventData),
-        recurringEventId: masterEvent.uid,
-        originalStartTime: originalStartTime
-      };
+    const body = {
+      ...toGoogleEvent(newEventData),
+      recurringEventId: masterEvent.uid,
+      originalStartTime: originalStartTime
+    };
 
-      const newGEvent = await makeAuthenticatedRequest<GoogleEventLike>(
-        token,
-        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(this.source.calendarId)}/events?conferenceDataVersion=1`,
-        'POST',
-        body
-      );
-
-      const rawEvent = fromGoogleEvent(newGEvent);
-      if (!rawEvent) {
-        throw new Error('Could not parse Google API response after creating instance override.');
-      }
-      return [rawEvent, null];
-    }
-    throw new Error(
-      'Modifying a single instance of an all-day recurring event is not yet supported for Google Calendars.'
+    const newGEvent = await makeAuthenticatedRequest<GoogleEventLike>(
+      token,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(this.source.calendarId)}/events?conferenceDataVersion=1`,
+      'POST',
+      body
     );
+
+    const rawEvent = fromGoogleEvent(newGEvent);
+    if (!rawEvent) {
+      throw new Error('Could not parse Google API response after creating instance override.');
+    }
+    return [rawEvent, null];
   }
 
   async setAttendance(

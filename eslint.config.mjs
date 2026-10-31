@@ -7,7 +7,23 @@ import globals from 'globals';
 
 export default tseslint.config(
     {
-        ignores: ['node_modules/**', 'dist/**', 'build/**', 'main.js', '*.min.js', 'web/**', 'docs/**', 'coverage/**', 'obsidian-dev-vault/**', 'tools/**'],
+        ignores: [
+            'node_modules/**',
+            'dist/**',
+            'build/**',
+            'main.js',
+            '**/*.min.js',
+            'vendor/**',
+            '.ladle/**',
+            'site/**',
+            'web/**',
+            'docs/**',
+            'coverage/**',
+            'obsidian-dev-vault/**',
+            'tools/**'
+        ]
+    },
+    {
         linterOptions: {
             reportUnusedDisableDirectives: 'error'
         }
@@ -138,12 +154,4 @@ export default tseslint.config(
             'import/no-nodejs-modules': 'off'
         }
     },
-    {
-        files: ['src/ui/settings/SettingsTab.tsx', 'src/ui/settings/LazySettingsTab.ts'],
-        rules: {
-            // Full Calendar settings render a dynamic multi-tab React shell imperatively via display().
-            // getSettingDefinitions() is bypassed/unsuitable for this interactive architecture.
-            'obsidianmd/settings-tab/prefer-setting-definitions': 'off'
-        }
-    }
 );

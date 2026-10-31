@@ -19,29 +19,37 @@ The Calendar Agent operates under strict privacy and architectural boundaries:
 
 ## Getting Started
 
-### 1. Opening the Agent Sidebar
+### 1. Accessing the Agent
 
-The Calendar Agent lives in Obsidian's persistent **Right Sidebar Leaf**, allowing you to converse with the agent while keeping your main calendar or notes visible:
+The Calendar Agent can be accessed in two coordinated ways:
 
-1.  **Ribbon Icon**: Click the **robot** (`bot`) icon on Obsidian's left ribbon.
-2.  **Command Palette**: Press ++ctrl+p++ (or ++cmd+p++ on macOS) and search for `Full Calendar: Open calendar agent`.
+#### A. Calendar Cockpit HUD (Left Panel)
+If the [Calendar Cockpit](../views/calendar-cockpit.md) is open, the agent is embedded directly as an accordion card (**`AgentHudModule`**):
+* Provides quick prompt entry, suggestion pills, and proposal approvals right beside your calendar grid.
+* Features a one-click **Open Panel** launcher button in its card header to immediately pop open the full Right Sidebar Leaf.
 
-The right sidebar view opens immediately, complete with conversation history, quick action pills, and an auto-resizing write bar.
+#### B. Right Sidebar Leaf
+The full-featured Calendar Agent lives in Obsidian's persistent **Right Sidebar Leaf**, ideal for deep conversational planning, multi-session management, and reviewing full audit trails:
+1.  **Cockpit Launcher**: Click the open panel icon in the Cockpit Agent HUD header.
+2.  **Ribbon Icon**: Click the **robot** (`bot`) icon on Obsidian's left ribbon.
+3.  **Command Palette**: Press ++ctrl+p++ (or ++cmd+p++ on macOS) and search for `Full Calendar: Open calendar agent`.
+
+The right sidebar view opens immediately, complete with multi-session history, quick action pills, proposal review cards, and token streaming.
 
 ```
 +--------------------------------------------------------+
 | [Default Session (3 msgs) v]  [+]  [Trash]  [Logs]     |
 +--------------------------------------------------------+
-| User: What's my schedule for today?                   |
-| Assistant: You have 3 events scheduled:               |
+| User: What's my schedule for today?                    |
+| Assistant: You have 3 events scheduled:                |
 |   * 09:00 AM - 10:00 AM: Team Standup                  |
 |   * 01:30 PM - 02:30 PM: Project Review                |
 |   * 04:00 PM - 05:00 PM: Deep Work Block               |
 |                                                        |
 | [Proposal: create event]                               |
 | Title: Meeting with Alice                              |
-| 📅 2026-09-10 ⏰ 14:00 - 15:00                         |
-| [Reject]                               [Approve & apply] |
+| 📅 2026-09-10 ⏰ 14:00 - 15:00                        |
+| [Reject]                             [Approve & apply] |
 +--------------------------------------------------------+
 | (What's my schedule today?) (Events this week) (...)   |
 +--------------------------------------------------------+
@@ -164,7 +172,7 @@ For 100% offline privacy, you can run open-weights models locally:
 
 Every action, tool call, proposal, latency measurement, and token usage count is recorded in a local structured JSONL audit trail:
 
-*   Click the **scroll** icon in the sidebar header or choose **View audit trail** in settings to open the [Agent Audit Modal](../../architecture/system/features/agent-architecture.md#4-audit-trail-agentauditlogger).
+*   Click the **scroll** icon in the sidebar header or choose **View audit trail** in settings to open the [Agent Audit Modal](../../architecture/system/features/agent-architecture.md#4-plugin-confined-storage-agentstorage).
 *   **Export audit log**: Copies the entire raw JSONL log to your clipboard for debugging or developer support.
 *   **Clear logs**: Purges the audit trail immediately.
 

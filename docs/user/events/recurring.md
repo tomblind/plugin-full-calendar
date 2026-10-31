@@ -13,7 +13,7 @@ The recurring event system in Full Calendar is designed to be both powerful and 
 3.  Optionally, set a **Start Repeat** and **End Repeat** date to define the range of the recurrence.
 4.  Save the event. A single source item will be created that represents the entire series.
 
-16: For note-backed calendars this is stored as one recurring note event. For CalDAV calendars, Full Calendar writes a real calendar recurrence rule (`RRULE`) to the remote calendar, so the event is a proper provider-side sequence rather than several local-looking copies.
+For note-backed calendars this is stored as one recurring note event. For CalDAV calendars, Full Calendar writes a real calendar recurrence rule (`RRULE`) to the remote calendar, so the event is a proper provider-side sequence rather than several local-looking copies.
 
 !!! tip "Recurrence Rule Customization"
     The **Repeats** dropdown updates dynamically based on the selected pattern, showing custom interval controls (e.g. interval input for "Every X days") and weekday selectors for weekly rules.
@@ -81,6 +81,8 @@ When you delete an event that is part of a recurring series, the plugin will ask
 -   **Delete sequence:** This deletes the recurring rule and every override associated with the sequence. This cannot be undone.
 
 Remote calendars respect cancellations and exceptions from the source and propagate them into the view. Google, Outlook, and CalDAV own their recurring-instance overrides natively, so moving, editing, or deleting one instance is written back as a provider override instead of as a separate local note.
+
+Google Calendar is powered by a dedicated RFC 5545 recurrence generator (`recurrenceRule.ts`) supporting daily intervals, weekly, monthly, and yearly series, all-day recurring events, and single-instance overrides.
 
 For CalDAV, the master recurring event and its exceptions usually live together in one `.ics` resource on the server. Full Calendar updates that shared resource in place when you edit or delete a single override, so the rest of the recurring series remains intact.
 

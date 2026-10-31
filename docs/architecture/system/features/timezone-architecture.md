@@ -24,9 +24,16 @@ For root cause details, fix strategy, and regression coverage, see the dedicated
 
 This behavior exists to prevent day/weekday drift around DST and timezone boundary transitions when `DTSTART;TZID=...` forms are not correctly handled upstream.
 
-## ICS and timezone normalization
+## ICS and Timezone Normalization
 
-Timezone handling includes normalization of IANA, UTC, and Windows timezone identifiers during ICS ingestion (Windows IDs are mapped with the CLDR `windowsZones.xml` table, territory "001"). Parsing and fallback logic are intentionally defensive to avoid malformed payload breakage.
+Timezone handling includes comprehensive normalization of IANA, UTC, and Windows timezone identifiers during ICS ingestion. All Windows timezone IDs are mapped directly from the Unicode CLDR `windowsZones.xml` table (territory "001"), while quote-wrapped strings and aliases are sanitized via `resolveSourceZone`.
+
+### Floating Event Time Preservation
+
+RFC 5545 specifies that date-time values without a `TZID` parameter and without a trailing `Z` are *floating*—they are not bound to any global timezone offset (for example, "take medication at 08:00" regardless of travel):
+* `icsToOFC` inspects `dtstart` for the absence of `tzid` parameters and UTC indicators.
+* Floating events leave `event.timezone` as `undefined` rather than coercing them into UTC or system time.
+* This ensures nominal clock times (e.g. 09:00 - 10:00) remain static without unexpected 1-hour or multi-hour shifts across display or host timezone transitions.
 
 ## ICS timezone serialization on write paths
 

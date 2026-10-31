@@ -19,8 +19,9 @@ Access these settings in **Full Calendar Settings → Calendar Sources**.
 *   **Google Calendar**: 
     *   **Standard Setup**: Connect using the built-in [OAuth flow](../calendars/gcal.md).
     *   **Custom Client**: Enable `Use custom Google client` to provide your own `Client ID` and `Client Secret` for increased privacy or rate-limit control.
-*   **CalDAV**: Connect to iCloud, Nextcloud, or Fastmail. See: [CalDAV Setup](../calendars/caldav.md).
-*   **CalDAV Tasks**: Connect a VTODO task/reminder collection, including iCloud Reminders. See: [CalDAV Tasks](../calendars/caldav-tasks.md).
+*   **CalDAV**: Connect to iCloud, Nextcloud, or Fastmail with standard CalDAV auto-discovery (RFC 5397 / RFC 4791) or manual URLs. See: [CalDAV Setup](../calendars/caldav.md).
+*   **CalDAV Tasks**: Connect a VTODO task/reminder collection, including iCloud Reminders and Fastmail task lists with automatic collection discovery. See: [CalDAV Tasks](../calendars/caldav-tasks.md).
+*   **Outlook Calendar**: Connect personal Microsoft Outlook accounts with multi-account support, mailbox timezone negotiation, and two-way sync. See: [Outlook Calendar Guide](../calendars/outlook.md).
 *   **ICS (Remote/Local)**: 
     *   **Remote**: Provide a public or secret `.ics` URL.
     *   **Local**: Provide a path to a `.ics` file stored within your Obsidian vault. See: [ICS Guide](../calendars/ics.md).

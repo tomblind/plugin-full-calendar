@@ -10,7 +10,7 @@ Workspaces allow you to save and switch between customized calendar setups. A wo
 - **Default Calendar**: Which calendar is pre-selected when creating an event while using this workspace.
 - **Filters**: [Category overrides](../events/categories.md), tasks visibility, and all‑day event toggles.
 - **Display Options**: View type (Month, Week, Day, or [Timeline](timeline_view.md)), week start day, and time grid settings.
-- **Default Date**: The start date range loaded by default (e.g. `today`, `start-of-month`, etc.).
+- **Default Date**: The explicit start date loaded by default, selected via an interactive date picker with a Reset-to-Today button.
 
 ---
 
@@ -20,6 +20,14 @@ Workspaces allow you to save and switch between customized calendar setups. A wo
 2. Click the workspace switcher in the header and choose **Save as Workspace**.
 3. Provide a name (e.g., "Planning", "Deep Work").
 4. Select it from the workspace switcher dropdown in the header to load it instantly.
+
+### Workspace Default Open Date
+
+Each workspace can specify an explicit date to jump to whenever the workspace is activated:
+
+- **Interactive Date Picker**: Choose a specific project kickoff, exam week, or milestone date directly using a native HTML5 date input rather than typing raw date strings.
+- **Reset to Today**: Click the **Reset to Today** button to immediately revert the workspace to open on today's current date.
+- **Dynamic View Alignment**: When switching workspaces, Full Calendar smoothly navigates to the workspace's target date while honoring the workspace's custom view type (Month, Week, Day, Timeline).
 
 ### Workspace Default Calendar
 

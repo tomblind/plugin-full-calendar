@@ -3,7 +3,7 @@
 Easily add, edit, and delete events from your Microsoft Outlook calendars in Full Calendar.
 
 !!! tip "Power Up with Categories"
-    Google Calendar events fully support [Advanced Categories](../events/categories.md). Use a title like `Personal - Doctor` to automatically apply your "Personal" color and styling.
+    Outlook Calendar events fully support [Advanced Categories](../events/categories.md). Use a title like `Personal - Doctor` to automatically apply your "Personal" color and styling.
 
 !!! warn "Not possible for Work / Institutional Calendars"
     Due to Microsoft policies, adding a work or institutional calendar will not be possible. See [here](#note-for-institutional-university-accounts) for more details
@@ -13,6 +13,7 @@ Easily add, edit, and delete events from your Microsoft Outlook calendars in Ful
 - Read events from Outlook calendars
 - Create, update, and delete single events
 - Multi-account support via connected Outlook accounts
+- **Timezone Integration**: Requests your mailbox timezone via Microsoft Graph's `Prefer: outlook.timezone` header, maps UTC start/end timestamps directly to your local display timezone, and retains timezone metadata in note frontmatter and the EditEvent modal.
 - **Video Conferencing & Links**: Automatically extracts MS Teams/Zoom/etc. meeting URLs from `onlineMeetingUrl` and maps them directly to location/description fields (rendered as clickable links in the [Event Details modal](../events/manage.md#video-conference--linkification-support); see [Video Conference & Linkification Support](../events/manage.md#video-conference--linkification-support)).
 
 Current limitation:
@@ -21,13 +22,13 @@ Current limitation:
 
 ## Setup
 
-1. Open Full Calendar settings.
-2. Go to Integrations and open Outlook Accounts.
+1. Open **Full Calendar Settings → Integrations**.
+2. Click the gear icon next to **Outlook Accounts** to open the management modal.
 3. Configure credentials mode:
    - Default mode uses built-in client/proxy defaults.
    - Optional custom mode lets you enter your own Microsoft Client ID and proxy URL.
-4. Connect an Outlook account.
-5. Return to Calendars and add Outlook calendars from the connected account.
+4. Click **Login with Microsoft** to connect your account.
+5. Return to **Calendar Sources** and add Outlook calendars from your connected account.
 
 ## Naming and Account Differentiation
 

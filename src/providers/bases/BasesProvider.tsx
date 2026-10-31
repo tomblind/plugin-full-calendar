@@ -22,7 +22,7 @@ interface BaseFilter {
 }
 
 interface BaseFile {
-  filters?: BaseFilter;
+  filters?: BaseFilter | (BaseFilter | string)[];
   views?: unknown[];
   properties?: unknown;
 }
@@ -38,6 +38,7 @@ export class BasesProvider implements CalendarProvider<BasesProviderConfig>, Syn
   displayName = 'Obsidian Bases';
   isRemote = false;
   loadPriority = 10; // Local priority
+  supportsSecondStage = false;
 
   config: BasesProviderConfig;
   plugin: FullCalendarPlugin;
@@ -62,7 +63,11 @@ export class BasesProvider implements CalendarProvider<BasesProviderConfig>, Syn
 
   // --- Filter Evaluation Logic ---
 
-  evaluateFilter(filter: BaseFilter | string, file: TFile): boolean {
+  evaluateFilter(filter: BaseFilter | string | (BaseFilter | string)[], file: TFile): boolean {
+    if (Array.isArray(filter)) {
+      return filter.every(f => this.evaluateFilter(f, file));
+    }
+
     if (typeof filter === 'string') {
       return this.evaluateFilterString(filter, file);
     }

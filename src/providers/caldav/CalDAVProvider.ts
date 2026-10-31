@@ -80,6 +80,7 @@ export class CalDAVProvider
   readonly displayName: string = 'CalDAV';
   readonly isRemote = true;
   readonly loadPriority: number = 110;
+  readonly supportsSecondStage: boolean = true;
 
   constructor(source: CalDAVProviderConfig, plugin: FullCalendarPlugin) {
     this.plugin = plugin;
@@ -229,7 +230,7 @@ export class CalDAVProvider
       );
 
       return parsedEvents.map(ev => {
-        const linkedFile = this.linkedNoteIndex.getFileForEvent(ev.uid || '');
+        const linkedFile = this.linkedNoteIndex.resolveLinkedFile(ev);
         const location = linkedFile
           ? { file: { path: linkedFile.path }, lineNumber: undefined }
           : null;

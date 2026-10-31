@@ -441,7 +441,15 @@ export const EditEvent = ({
       // Replies are sent to the provider directly, so saving keeps the reply the event loaded with.
       ...(initialEvent?.attendance && { attendance: initialEvent.attendance }),
       ...timeInfo,
-      ...eventData
+      ...eventData,
+      ...(!allDay && (initialEvent?.timezone || PluginState.getSettings().displayTimezone)
+        ? {
+            timezone:
+              initialEvent?.timezone ||
+              PluginState.getSettings().displayTimezone ||
+              Intl.DateTimeFormat().resolvedOptions().timeZone
+          }
+        : {})
     } as OFCEvent;
 
     await submit(finalEvent, calendarIndex);

@@ -20,7 +20,8 @@ Calendars are automatically re-fetched from their source at most every five minu
 - **Task Support (VTODO):** Mixed CalDAV sources read both events and tasks. Turning a single event into a task writes a `VTODO`; removing task status changes it back to a `VEVENT`. Editing, moving, or renaming an imported task keeps it a `VTODO`, including date-only and scheduled tasks, while preserving server-specific task properties. For isolated task/reminder collections, completion controls, and stricter task-only validation, use the dedicated [CalDAV Tasks](caldav-tasks.md) source.
 - **Timezones:** Events and tasks are parsed with their source timezone and converted to your Display Timezone for viewing.
 - **Cancellations:** Cancellations/exceptions present on the server are respected.
-- **Recurring exceptions:** Moving one occurrence creates an exception in the original CalDAV resource. That occurrence can be moved again later without changing the rest of the series.
+- **Display Mode Persistence (`X-OFC-DISPLAY`)**: Custom display modes (`background`, `inverse-background`, `list-item`, `block`) are stored on `VEVENT` components using the standard `X-OFC-DISPLAY` property, preserving background styling through CalDAV synchronizations.
+- **Recurring exceptions & Identity Retention:** Moving an occurrence creates an exception in the original CalDAV resource with canonical `RECURRENCE-ID` TZID parameters and shared server `href` attributes. Exceptions can be moved repeatedly without decoupling from the parent series.
 
 ---
 

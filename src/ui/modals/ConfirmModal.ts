@@ -44,7 +44,7 @@ export class ConfirmModal extends Modal {
       .addButton((btn: ButtonComponent) => {
         btn.setButtonText(this.confirmButtonText);
         if (this.isDestructive) {
-          btn.setDestructive();
+          btn.buttonEl.addClass('mod-warning');
         } else {
           btn.setCta();
         }

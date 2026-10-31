@@ -25,9 +25,10 @@ Note: `webcal://` links are automatically converted to `https://` when added.
 
 - ICS calendars are read-only inside Obsidian.
 - **Video Conferencing & Links**: Extracts meeting URLs from RFC 7986 `CONFERENCE` attributes or Microsoft Teams specific fields, merging them directly into the parsed location or description. Injected URLs and description links are fully clickable inside the [Event Details modal](../events/manage.md#video-conference--linkification-support). For details, see [Video Conference & Linkification Support](../events/manage.md#video-conference--linkification-support).
-- Events are parsed with their source timezone (including TZID/UTC) and converted to your Display Timezone for viewing.
-- Cancellations/exceptions present in the feed are respected.
-- Recurring events and tasks respect every date in an `EXDATE` property, including multiple canceled occurrences listed together by Outlook.
+- Events with explicit timezones (including `TZID` parameters or UTC `Z` indicators) are parsed in their source timezone and converted to your Display Timezone for viewing.
+- **Floating Event Time Preservation**: Events without a `TZID` parameter and without a UTC indicator (`Z`) are treated as floating event times. Their exact nominal hour is preserved without shifting relative to system or display timezone conversions.
+- **Display Mode Property (`X-OFC-DISPLAY`)**: Honors the `X-OFC-DISPLAY` property on `VEVENT` components, allowing external calendar feeds to define custom FullCalendar display styles (`background`, `inverse-background`, `list-item`, `block`).
+- **Multi-Date Cancellations (`EXDATE`)**: Recurring events and tasks parse and respect all comma-separated dates across multiple `EXDATE` properties, ensuring multi-date cancellations from Outlook, WebCal, and external feeds are cleanly excluded.
 
 
 ## Troubleshooting

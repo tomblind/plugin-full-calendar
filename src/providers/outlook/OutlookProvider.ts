@@ -14,6 +14,7 @@ import { fromOutlookEvent, OutlookEventLike, toOutlookEvent } from './parser/par
 import { LinkedNoteIndex } from '../utils/LinkedNoteIndex';
 import { TFile } from 'obsidian';
 import { createLinkedNoteForProvider } from '../../features/linked-notes/linkedNotes';
+import { resolveEffectiveTimezone } from '../../features/timezone/Timezone';
 
 const OutlookNameSetting: React.FC<{ source: Partial<import('../../types').CalendarInfo> }> = ({
   source
@@ -94,6 +95,7 @@ export class OutlookProvider implements CalendarProvider<OutlookProviderConfig>,
   readonly displayName = 'Outlook Calendar';
   readonly isRemote = true;
   readonly loadPriority = 125;
+  readonly supportsSecondStage = false;
 
   constructor(source: OutlookProviderConfig, plugin: FullCalendarPlugin, _app?: ObsidianInterface) {
     this.plugin = plugin;
@@ -162,6 +164,13 @@ export class OutlookProvider implements CalendarProvider<OutlookProviderConfig>,
     return token;
   }
 
+  private getEventHeaders(): Record<string, string> {
+    const displayZone = resolveEffectiveTimezone();
+    return {
+      Prefer: `outlook.timezone="${displayZone}"`
+    };
+  }
+
   async getEvents(_range?: {
     start: Date;
     end: Date;
@@ -177,7 +186,10 @@ export class OutlookProvider implements CalendarProvider<OutlookProviderConfig>,
 
     const response = await makeAuthenticatedRequest<{ value?: OutlookEventLike[] }>(
       token,
-      url.toString()
+      url.toString(),
+      'GET',
+      undefined,
+      this.getEventHeaders()
     );
 
     if (!Array.isArray(response.value)) {
@@ -192,7 +204,7 @@ export class OutlookProvider implements CalendarProvider<OutlookProviderConfig>,
         if (!parsed) return null;
         const validated = validateEvent(parsed);
         if (!validated) return null;
-        const linkedFile = this.linkedNoteIndex.getFileForEvent(validated.uid || '');
+        const linkedFile = this.linkedNoteIndex.resolveLinkedFile(validated);
         const location = linkedFile
           ? { file: { path: linkedFile.path }, lineNumber: undefined }
           : null;
@@ -210,7 +222,8 @@ export class OutlookProvider implements CalendarProvider<OutlookProviderConfig>,
       token,
       `https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(this.source.calendarId)}/events`,
       'POST',
-      toOutlookEvent(event)
+      toOutlookEvent(event),
+      this.getEventHeaders()
     );
 
     const parsed = fromOutlookEvent(created);
@@ -258,7 +271,8 @@ export class OutlookProvider implements CalendarProvider<OutlookProviderConfig>,
       token,
       `https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(this.source.calendarId)}/events/${encodeURIComponent(handle.persistentId)}`,
       'PATCH',
-      toOutlookEvent(newEventData)
+      toOutlookEvent(newEventData),
+      this.getEventHeaders()
     );
 
     return null;
@@ -295,7 +309,10 @@ export class OutlookProvider implements CalendarProvider<OutlookProviderConfig>,
 
     const response = await makeAuthenticatedRequest<{ value?: OutlookEventLike[] }>(
       token,
-      url.toString()
+      url.toString(),
+      'GET',
+      undefined,
+      this.getEventHeaders()
     );
     if (!Array.isArray(response.value)) {
       return null;
@@ -365,7 +382,8 @@ export class OutlookProvider implements CalendarProvider<OutlookProviderConfig>,
       token,
       `https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(this.source.calendarId)}/events/${encodeURIComponent(occurrenceId)}`,
       'PATCH',
-      toOutlookEvent(newEventData)
+      toOutlookEvent(newEventData),
+      this.getEventHeaders()
     );
 
     const parsed = fromOutlookEvent(updated);

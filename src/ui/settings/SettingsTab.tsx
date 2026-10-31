@@ -17,15 +17,7 @@ import { showNotice } from '../../utils/showNotice';
 
 import { PluginState } from '../../core/PluginState';
 import FullCalendarPlugin from '../../main';
-import {
-  App,
-  DropdownComponent,
-  PluginSettingTab,
-  setIcon,
-  Setting,
-  TFile,
-  TFolder
-} from 'obsidian';
+import { App, DropdownComponent, setIcon, Setting, TFile, TFolder } from 'obsidian';
 
 import ReactModal from '../ReactModal';
 import * as ReactDOM from 'react-dom/client';
@@ -352,8 +344,10 @@ export function addCalendarButton(
     });
 }
 
-export class FullCalendarSettingTab extends PluginSettingTab {
+export class FullCalendarSettingTab {
+  app: App;
   plugin: FullCalendarPlugin;
+  containerEl!: HTMLElement;
   private showFullChangelog = false;
   private showMilestonesPage = false;
   private activeCategory: SettingsCategoryId = 'general';
@@ -366,7 +360,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
   private reactRoots: ReactDOM.Root[] = [];
 
   constructor(app: App, plugin: FullCalendarPlugin, registry: ProviderRegistry) {
-    super(app, plugin);
+    this.app = app;
     this.plugin = plugin;
     this.registry = registry;
   }
@@ -389,7 +383,6 @@ export class FullCalendarSettingTab extends PluginSettingTab {
   hide(): void {
     void PluginState.flushDebouncedSave();
     this.unmountReactRoots();
-    super.hide();
   }
 
   display(): void {

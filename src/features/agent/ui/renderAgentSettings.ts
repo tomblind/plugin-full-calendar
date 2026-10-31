@@ -17,6 +17,8 @@ import type { AgentStorage } from '../core/AgentStorage';
 import type { AgentAuditLogger } from '../core/AgentAuditLogger';
 import type { AgentCalendarBridge } from '../tools/AgentCalendarBridge';
 import { t } from '../../i18n/i18n';
+import { createDescWithDocs } from '../../../ui/settings/docsLinks';
+import { SettingsModal } from '../../../ui/modals/SettingsModal';
 
 const ENDPOINT_PRESETS: Record<string, { endpoint: string; defaultModel: string }> = {
   OpenAI: { endpoint: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini' },
@@ -27,32 +29,32 @@ const ENDPOINT_PRESETS: Record<string, { endpoint: string; defaultModel: string 
   'LM Studio (Local)': { endpoint: 'http://localhost:1234/v1', defaultModel: 'default' }
 };
 
-export function renderAgentSettings(
+/**
+ * Renders the internal Agent settings controls (used inside the common SettingsModal).
+ */
+export function renderAgentSettingsContent(
   containerEl: HTMLElement,
   plugin: FullCalendarPlugin,
   storage: AgentStorage,
   logger: AgentAuditLogger,
   bridge: AgentCalendarBridge
 ): void {
-  const settings = PluginState.getSettings();
-  if (!settings.agent) {
-    settings.agent = {
-      enabled: true,
-      endpointUrl: 'https://api.openai.com/v1',
-      model: 'gpt-4o-mini',
-      temperature: 0.2,
-      specUrl:
-        'https://raw.githubusercontent.com/obsidian-full-calendar-remastered/plugin-full-calendar/main/docs/architecture/api/agent-spec.md',
-      maxRetries: 3,
-      timeoutMs: 60000
-    };
-  }
-
-  containerEl.createEl('h3', { text: t('agent.settings.title') });
-  containerEl.createEl('p', {
-    text: t('agent.settings.description'),
-    cls: 'ofc-agent-settings-desc'
-  });
+  const getAgentSettings = () => {
+    const s = PluginState.getSettings();
+    if (!s.agent) {
+      s.agent = {
+        enabled: true,
+        endpointUrl: 'https://api.openai.com/v1',
+        model: 'gpt-4o-mini',
+        temperature: 0.2,
+        specUrl:
+          'https://raw.githubusercontent.com/obsidian-full-calendar-remastered/plugin-full-calendar/main/docs/architecture/api/agent-spec.md',
+        maxRetries: 3,
+        timeoutMs: 60000
+      };
+    }
+    return s.agent;
+  };
 
   let endpointTextComponent: TextComponent | null = null;
   let modelTextComponent: TextComponent | null = null;
@@ -69,7 +71,8 @@ export function renderAgentSettings(
 
   const syncPresetDropdown = () => {
     if (presetDropdownComponent) {
-      const matched = findMatchingPreset(settings.agent.endpointUrl, settings.agent.model);
+      const current = getAgentSettings();
+      const matched = findMatchingPreset(current.endpointUrl, current.model);
       presetDropdownComponent.setValue(matched);
     }
   };
@@ -79,8 +82,8 @@ export function renderAgentSettings(
     .setName(t('agent.settings.enableName'))
     .setDesc(t('agent.settings.enableDesc'))
     .addToggle(toggle => {
-      toggle.setValue(settings.agent.enabled).onChange(async val => {
-        settings.agent.enabled = val;
+      toggle.setValue(getAgentSettings().enabled).onChange(async val => {
+        getAgentSettings().enabled = val;
         await PluginState.saveSettings();
         plugin.agentManager?.updateSettings();
       });
@@ -96,12 +99,14 @@ export function renderAgentSettings(
       for (const name of Object.keys(ENDPOINT_PRESETS)) {
         dropdown.addOption(name, name);
       }
-      dropdown.setValue(findMatchingPreset(settings.agent.endpointUrl, settings.agent.model));
+      dropdown.setValue(
+        findMatchingPreset(getAgentSettings().endpointUrl, getAgentSettings().model)
+      );
       dropdown.onChange(async val => {
         if (val !== 'custom' && ENDPOINT_PRESETS[val]) {
           const preset = ENDPOINT_PRESETS[val];
-          settings.agent.endpointUrl = preset.endpoint;
-          settings.agent.model = preset.defaultModel;
+          getAgentSettings().endpointUrl = preset.endpoint;
+          getAgentSettings().model = preset.defaultModel;
           endpointTextComponent?.setValue(preset.endpoint);
           modelTextComponent?.setValue(preset.defaultModel);
           await PluginState.saveSettings();
@@ -118,9 +123,9 @@ export function renderAgentSettings(
       endpointTextComponent = text;
       text
         .setPlaceholder(t('agent.settings.endpointPlaceholder'))
-        .setValue(settings.agent.endpointUrl)
+        .setValue(getAgentSettings().endpointUrl)
         .onChange(async val => {
-          settings.agent.endpointUrl = val.trim();
+          getAgentSettings().endpointUrl = val.trim();
           await PluginState.saveSettings();
           plugin.agentManager?.updateSettings();
           syncPresetDropdown();
@@ -135,9 +140,9 @@ export function renderAgentSettings(
       modelTextComponent = text;
       text
         .setPlaceholder(t('agent.settings.modelPlaceholder'))
-        .setValue(settings.agent.model)
+        .setValue(getAgentSettings().model)
         .onChange(async val => {
-          settings.agent.model = val.trim();
+          getAgentSettings().model = val.trim();
           await PluginState.saveSettings();
           plugin.agentManager?.updateSettings();
           syncPresetDropdown();
@@ -175,11 +180,12 @@ export function renderAgentSettings(
         btn.setButtonText(t('agent.settings.testingBtn'));
         btn.setDisabled(true);
 
+        const currentAgent = getAgentSettings();
         const client = new AgentClient(
           {
-            endpointUrl: settings.agent.endpointUrl,
-            apiKey: CredentialStore.getAgentApiKey() || '',
-            model: settings.agent.model,
+            endpointUrl: currentAgent.endpointUrl,
+            apiKey: CredentialStore.getAgentApiKey() || currentAgent.apiKey || '',
+            model: currentAgent.model,
             timeoutMs: 15000
           },
           logger
@@ -204,9 +210,9 @@ export function renderAgentSettings(
     .addText(text => {
       text
         .setPlaceholder(t('agent.settings.specPlaceholder'))
-        .setValue(settings.agent.specUrl)
+        .setValue(getAgentSettings().specUrl)
         .onChange(async val => {
-          settings.agent.specUrl = val.trim();
+          getAgentSettings().specUrl = val.trim();
           await PluginState.saveSettings();
           plugin.agentManager?.updateSettings();
         });
@@ -247,5 +253,73 @@ export function renderAgentSettings(
         await storage.clearHistory();
         showNotice(t('agent.settings.historyClearedNotice'));
       });
+    });
+}
+
+/**
+ * Renders the consolidated Agent integration setting row with gear button.
+ */
+export function renderAgentSettings(
+  containerEl: HTMLElement,
+  plugin: FullCalendarPlugin,
+  storage: AgentStorage,
+  logger: AgentAuditLogger,
+  bridge: AgentCalendarBridge
+): void {
+  const getAgentSettings = () => {
+    const s = PluginState.getSettings();
+    if (!s.agent) {
+      s.agent = {
+        enabled: true,
+        endpointUrl: 'https://api.openai.com/v1',
+        model: 'gpt-4o-mini',
+        temperature: 0.2,
+        specUrl:
+          'https://raw.githubusercontent.com/obsidian-full-calendar-remastered/plugin-full-calendar/main/docs/architecture/api/agent-spec.md',
+        maxRetries: 3,
+        timeoutMs: 60000
+      };
+    }
+    return s.agent;
+  };
+
+  const agentSettings = getAgentSettings();
+
+  new Setting(containerEl)
+    .setName(t('agent.settings.title'))
+    .setDesc(
+      createDescWithDocs(t('agent.settings.description'), [
+        { text: 'Full Calendar Agent guide', path: 'user/features/agent' },
+        { text: 'Agent architecture spec', path: 'architecture/api/agent-spec' },
+        { text: 'Troubleshooting', path: 'user/guides/troubleshooting' }
+      ])
+    )
+    .addToggle(toggle => {
+      toggle.setValue(agentSettings.enabled).onChange(async val => {
+        agentSettings.enabled = val;
+        await PluginState.saveSettings();
+        plugin.agentManager?.updateSettings();
+      });
+    })
+    .addExtraButton(button => {
+      button
+        .setIcon('gear')
+        .setTooltip('Configure agent settings')
+        .onClick(() => {
+          SettingsModal.open(
+            plugin.app,
+            {
+              title: t('agent.settings.title') || 'Agentic automations (byok)',
+              docsLinks: [
+                { text: 'Full Calendar Agent guide', path: 'user/features/agent' },
+                { text: 'Agent architecture spec', path: 'architecture/api/agent-spec' },
+                { text: 'Troubleshooting', path: 'user/guides/troubleshooting' }
+              ]
+            },
+            contentEl => {
+              renderAgentSettingsContent(contentEl, plugin, storage, logger, bridge);
+            }
+          );
+        });
     });
 }

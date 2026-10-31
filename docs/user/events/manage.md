@@ -50,7 +50,7 @@ The Event Creation and Editing Modal has been redesigned to offer a modern, clea
 - **Unified, Clean Design**: Legacy grey horizontal dividing borders between form fields have been removed. The layout relies on native theme-consistent spacing to look cohesive and uncluttered.
 - **Collapsible Advanced Options**: To keep the interface focused and simple, less frequently used configurations—such as **Display** (calendar appearance) and **Repeats** (recurrence patterns)—are grouped inside an **Advanced Options** panel at the bottom of the form. This panel is neatly styled and **folded/closed by default**.
 - **Adaptive Spacing**: Spacing adapts cleanly whether Advanced Categories or Background Events are toggled on or off, keeping only the most relevant fields immediately visible.
-- **Full Internationalization (i18n)**: The entire modal form, including tooltips, select presets, dropdown items, and placeholders, is fully translated across English, German, Spanish, French, Italian, and Chinese.
+- **Full Internationalization (i18n)**: The entire modal form, including tooltips, select presets, dropdown items, and placeholders, is fully translated across English, German, Spanish, French, Italian, Chinese, and Brazilian Portuguese.
 
 ---
 
@@ -60,6 +60,7 @@ The Event Creation and Editing Modal has been redesigned to offer a modern, clea
 
 ---
 
+<span id="video-conference--linkification-support"></span>
 ## Video Conference & Linkification Support
 
 When clicking on an event to view its details, the Event Details modal automatically linkifies URLs to make them clickable:

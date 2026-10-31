@@ -70,11 +70,15 @@ Typical progression in standard time-grid views:
 - 15 minutes
 - 5 minutes
 
-## Mobile Navigation
+<span id="mobile-navigation"></span>
+## Mobile Navigation & Gesture Handling
 
-- On mobile, the month view uses compact event markers to reduce clutter while still keeping per-day occupancy visible.
-- Supported day and 3-day views accept pinch-to-zoom gestures for faster density changes.
-- Layout switching is grouped into the mobile `More` menu so the main toolbar stays readable on narrow screens.
+- **Compact Indicators**: On mobile, the month view uses compact event markers to reduce clutter while keeping per-day occupancy visible.
+- **Pinch-to-Zoom**: Supported day and 3-day views accept pinch gestures for faster density adjustments.
+- **Swipe Edge Safe Margin**: A 30px left/right edge margin is enforced on `touchstart` to avoid conflicts with Obsidian's native mobile sidebar swipe drawers.
+- **Swipe Invalidation on Event Interaction**: Swipe navigation is automatically suppressed while dragging an event, resizing an event edge, or selecting a date range, preventing accidental date hops during scheduling.
+- **Interruption Cleanup**: Binds to `touchcancel` events to cleanly reset gesture states if a mobile gesture is interrupted.
+- **Menu Consolidation**: Layout switching is grouped into the mobile `More` menu so the main toolbar stays readable on narrow screens.
 
 ## Context Menu Actions
 

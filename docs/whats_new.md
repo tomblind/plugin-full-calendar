@@ -3,6 +3,32 @@
 This page highlights the latest **major features and improvements** to help you get the most out of the plugin.  
 For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
+## 🚀 Calendar Cockpit (Left Command Panel)
+
+The **Calendar Cockpit** transforms wide desktop displays into an actionable command center situated alongside your main calendar grid:
+
+*   **Mini Month Navigator (`MiniMonthModule`)**: Persistent 7x6 month datepicker with event activity heatmap dots, month browsing chevrons, and bi-directional date synchronization with FullCalendar.
+*   **Up Next Stream & Hourly Weather (`UpNextWeatherModule`)**: Surfaces upcoming events in a 24-hour chronological stream with real-time status badges (`Now`, `in 15m`), temperature forecasts, and inclement weather warnings (>40% rain).
+*   **Task Backlog Drag-to-Grid Timeblocking (`TaskBacklogModule`)**: Integrated with FullCalendar `Draggable`. Drag unscheduled tasks directly from the left panel onto empty timegrid slots to schedule them instantly.
+*   **Persistent Resizer with Double-Click Toggle**: Smoothly clamp panel width between 200px and 520px, double-click the splitter to collapse or restore, and enjoy automatic 60fps calendar reflow.
+
+➡️ Learn more in **[Calendar Cockpit](user/views/calendar-cockpit.md)** and **[Cockpit Architecture](architecture/views/calendar-sidebar-architecture.md)**.
+
+---
+
+## 🤖 Bring-Your-Own-Key (BYOK) Calendar Agent
+
+Converse with your schedule using a private, Bring-Your-Own-Key AI calendar assistant:
+
+*   **Complete Model Freedom**: Connect to OpenAI, OpenRouter, Groq, DeepSeek, or run 100% offline with local models using **Ollama** or **LM Studio**.
+*   **Strict Write-Approval Gatekeeper**: The agent cannot mutate your schedule silently. All creations, updates, deletions, and batch imports are staged as interactive proposal cards requiring your explicit one-click review and approval.
+*   **Web Schedule Scraping**: Feed public syllabi, conference schedules, or timetable URLs to the agent to automatically extract events into a batch import checklist.
+*   **Integrated Cockpit HUD & Right Sidebar Leaf**: Interact via the compact HUD docked in the Calendar Cockpit sidebar or launch the full Right Sidebar Agent Leaf for multi-session histories and audit trails.
+*   **Zero Vault Residue & OS Keychain Security**: API keys are securely safeguarded in your operating system keychain (`secretStorage`), and all conversation logs reside strictly within `.obsidian/plugins/full-calendar-remastered/agent/`.
+
+➡️ Learn more in **[Calendar Agent](user/features/agent.md)**, **[Agent Architecture](architecture/system/features/agent-architecture.md)**, and **[Agent Specification](architecture/api/agent-spec.md)**.
+
+---
 
 ## 📔 First-Class Journals Calendar Provider
 

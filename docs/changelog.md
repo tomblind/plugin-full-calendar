@@ -7,6 +7,87 @@ Corresponds to
 -   **For Dev**: `git tags` of the `main` branch
 
 
+## v0.13.7
+
+### New Features
+
+-   **[Calendar Cockpit (Left Panel)](user/views/calendar-cockpit.md)** ([#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Introduced a modular, collapsible command panel for desktop and tablet displays featuring a persistent mini-month navigator with heatmap indicators, chronological up-next stream with real-time countdown pills and hourly weather forecasts, drag-to-grid task backlog timeblocking, and a persistent resizer with double-click collapse toggle._
+    - [Calendar Cockpit Guide](user/views/calendar-cockpit.md)
+    - [Calendar Cockpit Architecture](architecture/views/calendar-sidebar-architecture.md)
+
+-   **[Bring-Your-Own-Key (BYOK) Calendar Agent](user/features/agent.md)** ([#419](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/419), [#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Added a private calendar AI agent supporting cloud (OpenAI, OpenRouter, Groq, DeepSeek) and local offline models (Ollama, LM Studio). Features strict write-approval proposal cards, web schedule scraping, OS keychain security, multi-session history, and a unified chat interface docked both in the Cockpit sidebar HUD and the full Right Sidebar Agent Leaf._
+    - [Calendar Agent Guide](user/features/agent.md)
+    - [Calendar Agent Architecture](architecture/system/features/agent-architecture.md)
+    - [Agent Tool Specification](architecture/api/agent-spec.md)
+
+-   **[CalDAV Auto-Discovery](user/calendars/caldav.md)** ([#419](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/419))
+    _Implemented standard RFC 5397 / RFC 4791 CalDAV auto-discovery. Automatically queries principal endpoints and calendar-home-sets for Fastmail, Apple Reminders, and Nextcloud, presenting event calendars and task lists for one-click selection._
+    - [CalDAV Guide](user/calendars/caldav.md)
+    - [CalDAV Tasks Guide](user/calendars/caldav-tasks.md)
+
+-   **[Daily Note Date Header Previews](user/features/interactions.md#date-links-and-daily-notes)** ([#401](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/401))
+    _Added direct date link interactions across month day numbers and view column headers. Clicking opens or creates the corresponding daily note, while hovering renders Obsidian's native Page Preview popover without creating missing files._
+    - [Interactions and Gestures](user/features/interactions.md#date-links-and-daily-notes)
+    - [Daily Note Guide](user/calendars/dailynote.md#navigation-to-daily-notes)
+    - [Daily-Note Date Navigation Architecture](architecture/system/features/daily-note-date-navigation.md)
+
+-   **[Brazilian Portuguese (pt-BR) Translation](user/features/i18n.md)** ([#427](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/427))
+    _Added complete Brazilian Portuguese (pt-BR) localization across all UI modals, settings tabs, notifications, and NLP command payloads._
+    - [Internationalization Guide](user/features/i18n.md)
+
+-   **[Workspace Default Date Picker](user/views/workspaces.md)** ([#342](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/342), [#419](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/419))
+    _Replaced freeform text inputs with a dedicated date picker and a one-click Reset-to-Today button in the workspace configuration modal._
+    - [Workspaces Guide](user/views/workspaces.md)
+
+### Improvements & Fixes
+
+-   **Startup & Render Performance Optimizations** ([#413](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/413), [#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Eliminated an O(N x V) daily notes identity lookup bottleneck in `IdentifierMapManager` by prioritizing `computeSyncKey()`, removing a 12.4s main-thread freeze. Suppressed intermediate per-provider emissions during Stage 1 startup to perform a single atomic render pass, added `supportsSecondStage` provider contracts to skip redundant second-stage scans for range-independent sources (Google, Outlook, ICS), moved HolidayProvider to priority Stage 3, and coalesced rapid event updates via `requestAnimationFrame`._
+    - [Performance & Staged Loading Architecture](architecture/system/performance.md)
+
+-   **Display Mode Round-Tripping & Non-Destructive Reminder Synchronization** ([#402](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/402))
+    _Persisted FullCalendar `display` modes (`background`, `inverse-background`, `list-item`, `block`) across sync cycles via Google Calendar private extended properties (`ofc-display`) and ICS/CalDAV `X-OFC-DISPLAY` properties. Switched Google updates to HTTP `PATCH` instead of destructive `PUT` to prevent accidental overwrites of attendees, conference data, and custom metadata. Enhanced reminder synchronization to preserve Google's calendar defaults and multiple existing alarms (email & popup) unless explicitly modified._
+    - [Google Calendar Guide](user/calendars/gcal.md)
+    - [CalDAV Guide](user/calendars/caldav.md)
+    - [Reminders Architecture](architecture/system/features/reminders-architecture.md)
+
+-   **RFC 5545 Recurrence Rule Generator & Provider Expansion** ([#418](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/418), [#426](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/426), [#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Extracted a modular RFC 5545 recurrence rule generator in `recurrenceRule.ts`, adding full support for Google all-day recurring events, daily intervals, weekly, monthly, and yearly recurrences. Flattened comma-separated `EXDATE` values to preserve multi-date cancellations from Outlook and WebCal feeds._
+    - [Recurring Events Guide](user/events/recurring.md)
+    - [ICS Guide](user/calendars/ics.md)
+
+-   **Floating Event Time Preservation & CLDR Windows Timezones** ([#417](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/417), [#428](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/428))
+    _Preserved floating event times in ICS feeds by treating dates without a `TZID` parameter and without a UTC `Z` designator as floating time, preventing unwanted timezone conversion shifts. Mapped every Windows timezone ID from Unicode CLDR `windowsZones.xml` and added quote-sanitizing parser helpers._
+    - [Timezone Architecture](architecture/system/features/timezone-architecture.md)
+
+-   **Outlook User Timezone Integration & Consolidated Settings** ([#423](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/423), [#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Requested mailbox timezones via `Prefer: outlook.timezone`, mapped UTC start/end timestamps to local display timezones, and retained timezone metadata in note frontmatter and the EditEvent modal. Consolidated account settings into a reusable settings modal._
+    - [Outlook Calendar Guide](user/calendars/outlook.md)
+
+-   **Touch & Mobile Gesture Protections** ([#409](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/409), [#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Added a 30px edge safe margin on `touchstart` to avoid conflicts with Obsidian mobile drawer gestures, added a `touchcancel` listener for interrupted touch states, and invalidated swipe navigation during event dragging, resizing, or date range selection._
+    - [Interactions and Gestures](user/features/interactions.md#mobile-navigation)
+
+-   **Frontmatter Serialization & Blank-Line Preservation** ([#424](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/424), [#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Serialized multiline frontmatter as YAML block literals (`|-`) with 2-space indentation and CRLF normalization. Implemented lookahead scanning in `modifyFrontmatterString` to preserve empty lines inside note bodies and prevent accidental text truncation._
+    - [Full Note Calendar Guide](user/calendars/local.md)
+
+-   **Embedded Calendar Table CSS Isolation** ([#415](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/415), [#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Reset `table`, `tr`, `th`, and `td` styles inside `.ofc-calendar-shell` and `.ofc-embedded-calendar-container` to block leaking Obsidian `.markdown-rendered` padding and heights, fixing downward event shifts and restoring `PositionCache` alignment._
+    - [Styling Architecture](architecture/system/styling.md)
+
+-   **Tasks Pre-Update State & Watcher Race Condition Guard** ([#338](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/338), [#430](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/430))
+    _Pre-updated in-memory task states prior to disk writes in `scheduleTask` and `unscheduleTask`, preventing file watcher race conditions from creating duplicate event instances._
+
+-   **CalDAV Identity & Override Retention** ([#404](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/404))
+    _Routed updates by previous and requested component semantics between `VEVENT` and `VTODO`, retaining shared server `href` and `RECURRENCE-ID` TZID parameters across repeated moves._
+    - [CalDAV Guide](user/calendars/caldav.md)
+
+-   **Dynamic Bulk Update State** ([#400](https://github.com/obsidian-full-calendar-remastered/plugin-full-calendar/pull/400))
+    _Passed dynamic getter to `isBulkUpdating` in `CacheContext` ensuring cache synchronization correctly observes live update states._
+
 ## v0.13.6
 
 ### New Features

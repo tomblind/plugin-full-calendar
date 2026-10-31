@@ -151,6 +151,7 @@ nav:
                 - Hover and Context Menu: user/events/hover_context.md
           - Views:
                 - user/views/index.md
+                - Calendar Cockpit (Left Panel): user/views/calendar-cockpit.md
                 - Workspaces: user/views/workspaces.md
                 - Timeline View Usage: user/views/timeline_view.md
           - Features:    
@@ -196,6 +197,7 @@ nav:
           - API:
                 - architecture/api/index.md
                 - Overview: architecture/api/overview.md
+                - Calendar Agent Specification: architecture/api/agent-spec.md
                 - Public JS API: architecture/api/public-api.md
                 - REST Server: architecture/api/rest-server.md
                 - Scopes & Authorization: architecture/api/scopes-permissions.md
@@ -237,6 +239,7 @@ nav:
                 - ActivityWatch Architecture: architecture/activitywatch/index.md
                 - ActivityWatch Implementation: architecture/activitywatch/implementation.md
                 - Linked Notes to Remote Events: architecture/system/features/event-linked-notes.md
+                - Daily-Note Date Navigation: architecture/system/features/daily-note-date-navigation.md
                 - Note Templating Architecture: architecture/system/features/templates.md
                 - FCR Reminder Companion App: architecture/system/features/fcr-reminder-architecture.md
                 - Break Timer Architecture: architecture/system/features/break-timer-architecture.md
@@ -245,6 +248,7 @@ nav:
                 - Calendar Agent Architecture: architecture/system/features/agent-architecture.md
           - Views Architecture:
                 - architecture/views/architecture.md
+                - Calendar Cockpit Architecture: architecture/views/calendar-sidebar-architecture.md
                 - Unified Embedded Widgets Architecture: architecture/views/embedded_widgets.md
           - ChronoAnalyser:
                 - architecture/chrono_analyser/architecture.md

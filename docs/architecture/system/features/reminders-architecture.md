@@ -44,9 +44,16 @@ Providers that can persist provider alarms set `CalendarProviderCapabilities.sup
 
 Provider mappings:
 
-*   CalDAV serializes `alarms` as ICS `VALARM` components.
-*   Google serializes `alarms` as popup reminder overrides.
+*   CalDAV serializes `alarms` as standard RFC 5545 `VALARM` components.
+*   Google serializes `alarms` as popup and email overrides. Reminders are synchronized non-destructively: omitting `alarms` leaves Google's calendar-default reminders intact rather than sending an empty override array. Explicit empty alarms (`alarms: []`) are sent only when the user explicitly clears reminders. Updates issue HTTP `PATCH` requests to avoid replacing the full resource.
 *   Outlook serializes `alarms` as reminder minutes.
+
+### Form Submission Safety (`computeSubmittedAlarms`)
+
+Because the UI modal form exposes a single reminder input field while providers like Google Calendar support multiple alarms (e.g. 10m popup and 24h email):
+* An `untouched` form state passes `initialAlarms` through unchanged, preventing accidental loss of secondary alarms.
+* A `touched` field with a value replaces the alarms with a single explicit `DISPLAY` alarm.
+* A `touched` and cleared field sends an explicit empty array `[]` only if alarms previously existed, or leaves it `undefined` if none did.
 
 Recurring instance overrides inherit `notify` and `alarms` from the master event unless the override explicitly supplies its own values. For CalDAV, override alarm edits are written by replacing the matching recurrence override component in the same `.ics` resource as the recurring master.
 

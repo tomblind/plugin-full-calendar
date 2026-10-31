@@ -14,6 +14,59 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.13.7',
+    changes: [
+      {
+        type: 'new',
+        title: 'Calendar Cockpit Left Panel',
+        description:
+          'Introduced an integrated, collapsible [Calendar Cockpit](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/views/calendar-cockpit/) featuring a persistent mini-month navigator with heatmap indicators, chronological upcoming event stream with hourly weather forecasts, and [drag-and-drop task backlog timeblocking](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/views/calendar-cockpit/#3-task-backlog--drag-to-schedule-taskbacklogmodule) onto the grid.'
+      },
+      {
+        type: 'new',
+        title: 'Bring-Your-Own-Key (BYOK) Calendar Agent',
+        description:
+          'Converse with your schedule using a private [BYOK Calendar Agent](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/features/agent/) supporting cloud (OpenAI, OpenRouter, Groq, DeepSeek) and local offline models (Ollama, LM Studio) with strict write-approval proposal cards, web schedule scraping, OS keychain security, and a docked Cockpit HUD.'
+      },
+      {
+        type: 'new',
+        title: 'CalDAV Auto-Discovery',
+        description:
+          'Standard RFC 5397 / RFC 4791 [CalDAV auto-discovery](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/calendars/caldav/#fastmail) for Fastmail, Nextcloud, and [Apple Reminders](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/calendars/caldav-tasks/) collections, querying principal endpoints and calendar home sets for one-click setup.'
+      },
+      {
+        type: 'new',
+        title: 'Daily Note Date Header Previews',
+        description:
+          'Direct click navigation to daily notes from calendar headers and instant [hover preview](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/features/interactions/#date-links-and-daily-notes) via Obsidian Page Preview popovers without creating missing files.'
+      },
+      {
+        type: 'new',
+        title: 'Workspace Default Date Picker',
+        description:
+          'Select workspace [default open dates](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/views/workspaces/#workspace-default-open-date) with an interactive date picker and a one-click Reset-to-Today button in the workspace configuration modal.'
+      },
+      {
+        type: 'improvement',
+        title: 'Display Mode & Non-Destructive Reminder Sync',
+        description:
+          'Persisted display modes across [Google](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/calendars/gcal/#feature-notes) (ofc-display) and [ICS/CalDAV](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/calendars/ics/#read-only-and-timezone-behavior) (X-OFC-DISPLAY), switched Google updates to HTTP PATCH to protect attendees and conferencing metadata, and preserved unedited alarms.'
+      },
+      {
+        type: 'improvement',
+        title: 'Startup & Render Performance Optimizations',
+        description:
+          'Eliminated O(N x V) daily notes identity bottleneck in IdentifierMapManager removing a 12.4s startup freeze, added [atomic Stage 1 rendering](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/architecture/system/performance/#single-atomic-render-pass--intermediate-emission-suppression), and supportsSecondStage provider contracts.'
+      },
+      {
+        type: 'fix',
+        title: 'Recurrence Generator & Outlook/ICS Timezone Fixes',
+        description:
+          'Modular RFC 5545 [recurrence engine](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/events/recurring/) for Google Calendar (daily, weekly, monthly, yearly, all-day), preserved floating event times in [ICS](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/calendars/ics/#read-only-and-timezone-behavior), and mapped [Outlook mailbox timezones](https://obsidian-full-calendar-remastered.github.io/plugin-full-calendar/user/calendars/outlook/#what-this-source-supports).'
+      }
+    ]
+  },
+  {
     version: '0.13.6',
     changes: [
       {

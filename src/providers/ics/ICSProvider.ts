@@ -72,6 +72,7 @@ export class ICSProvider implements CalendarProvider<ICSProviderConfig>, SyncKey
 
   readonly type = 'ical';
   readonly loadPriority = 100;
+  readonly supportsSecondStage = false;
 
   /** Dynamic: returns true for remote URLs, false for local file paths */
   get isRemote(): boolean {
@@ -163,7 +164,7 @@ export class ICSProvider implements CalendarProvider<ICSProviderConfig>, SyncKey
           const content = await this.plugin.app.vault.read(file);
           const rawEvents = await getEventsFromICSAsync(content);
           return rawEvents.map(event => {
-            const linkedFile = this.linkedNoteIndex.getFileForEvent(event.uid || '');
+            const linkedFile = this.linkedNoteIndex.resolveLinkedFile(event);
             const location = linkedFile
               ? { file: { path: linkedFile.path }, lineNumber: undefined }
               : null;
@@ -194,7 +195,7 @@ export class ICSProvider implements CalendarProvider<ICSProviderConfig>, SyncKey
       // Remove timezone conversion logic; just return raw events
       const rawEvents = await getEventsFromICSAsync(response);
       return rawEvents.map(event => {
-        const linkedFile = this.linkedNoteIndex.getFileForEvent(event.uid || '');
+        const linkedFile = this.linkedNoteIndex.resolveLinkedFile(event);
         const location = linkedFile
           ? { file: { path: linkedFile.path }, lineNumber: undefined }
           : null;

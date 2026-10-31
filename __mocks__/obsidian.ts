@@ -74,12 +74,18 @@ export class TFolder extends TAbstractFile {
     }
 }
 
-export function parseYaml(yaml: string): Record<string, string> | null {
-    const [k, ...v] = yaml.split(":");
-    if (!k || !v) {
+import { parse as yamlParse } from 'yaml';
+
+export function parseYaml(yaml: string): Record<string, unknown> | null {
+    try {
+        const parsed: unknown = yamlParse(yaml);
+        if (parsed && typeof parsed === 'object') {
+            return parsed as Record<string, unknown>;
+        }
+        return null;
+    } catch {
         return null;
     }
-    return Object.fromEntries([[k.trim(), v.join(":").trim()]]);
 }
 
 export function getAllTags(cache: { tags?: { tag: string }[]; frontmatter?: { tags?: string | string[]; tag?: string | string[] } }): string[] | null {
@@ -139,7 +145,20 @@ export const editorInfoField = StateField.define<unknown>({
     update: (val: unknown) => val
 });
 
-export class Component {}
+export class Component {
+    load() {}
+    onload() {}
+    unload() {
+        this.onunload();
+    }
+    onunload() {}
+    addChild<T extends Component>(component: T): T { return component; }
+    removeChild<T extends Component>(component: T): T { return component; }
+    register(cb: () => unknown) {}
+    registerEvent(eventRef: unknown) {}
+    registerDomEvent(el: unknown, type: unknown, callback: unknown, options?: unknown) {}
+    registerInterval(id: number) { return id; }
+}
 export class MarkdownRenderChild extends Component {}
 export class Modal {
     contentEl: HTMLElement;

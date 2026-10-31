@@ -21,6 +21,8 @@ Styling is modularized across the codebase to group presentation rules with thei
 | [src/features/task-backlogs/task-backlog.css](file:///d:/Codes/plugin-full-calendar/src/features/task-backlogs/task-backlog.css) | ~10.9 KB | Layouts, item cards, list groupings, and dragging animations for the standalone Task Backlog sidebar view. |
 | [src/ui/settings/changelogs/changelog.css](file:///d:/Codes/plugin-full-calendar/src/ui/settings/changelogs/changelog.css) | ~9.2 KB | Version logs, what's new modals, and tab settings inside the plugin settings pane. |
 | [src/features/codeblock/codeblock.css](file:///d:/Codes/plugin-full-calendar/src/features/codeblock/codeblock.css) | ~1.6 KB | Layout systems for embedded codeblocks/widgets (`.ofc-layout-horizontal`, `.ofc-layout-vertical`, `.ofc-layout-view-item`) and backlog borders. |
+| [src/features/calendar-sidebar/styles/calendar-sidebar.css](file:///d:/Codes/plugin-full-calendar/src/features/calendar-sidebar/styles/calendar-sidebar.css) | ~8.4 KB | Calendar Cockpit left panel layouts, mini month 7x6 calendar, activity heatmap indicator dots, upcoming events stream, countdown pills, and resizer splitter controls. |
+| [src/features/agent/ui/styles/agent.css](file:///d:/Codes/plugin-full-calendar/src/features/agent/ui/styles/agent.css) | ~12.2 KB | Calendar Agent chat messages, user/assistant bubbles, proposal approval cards, batch checklist styling, suggestion pills, and sticky section headers. |
 
 ---
 
@@ -48,6 +50,13 @@ Overriding Obsidian's native classes (such as `.setting-item`, `.setting-item-na
 
 ### 3. Reusable UI Utilities
 Shared layout patterns and UI shapes (like `.ofc-range-separator`, `.ofc-warning-box`, and `.ofc-setup-card`) should be defined under the **Generic Reusable UI Utilities** section in [src/styles.css](file:///d:/Codes/plugin-full-calendar/src/styles.css) rather than being duplicated inside separate feature stylesheets.
+
+### 4. Markdown Table Styling Isolation (#415)
+When calendars are embedded in notes or displayed inside Obsidian leaves, Obsidian's `.markdown-rendered` styles can leak into FullCalendar table elements (`table`, `tr`, `th`, `td`), adding unexpected line heights, cell padding, and borders that cause downward event shifts and misalign FullCalendar's `PositionCache`.
+
+To guarantee sub-pixel alignment and clean borders:
+* Elements inside `.ofc-calendar-shell` and `.ofc-embedded-calendar-container` reset `table`, `tr`, `th`, and `td` to `margin: 0; padding: 0; border: none; background: transparent;`.
+* `border-collapse: collapse;` is enforced on table structures, and borders are strictly controlled via FullCalendar's CSS variables.
 
 ---
 

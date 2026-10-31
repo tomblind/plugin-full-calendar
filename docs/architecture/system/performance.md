@@ -11,8 +11,8 @@ When the plugin initializes (or when a full resync is triggered), the `ProviderR
 
 | Tier | Priority Range | Execution Characteristics | Providers |
 | :--- | :---: | :--- | :--- |
-| **Stage 0 (Local Sync)** | `loadPriority < 100` | Fetched immediately and synchronously during startup. UI populates without waiting for network I/O. | `FullNoteProvider` (10)<br>`DailyNoteProvider` (20)<br>`TasksPluginProvider` (30)<br>`TaskNotesProvider` (40) |
-| **Stage 1 & 2 (Remote Async)** | `loadPriority >= 100` | Fetched asynchronously in background waves using range filtering and yielding. | `CalDAVProvider` (110)<br>`GoogleProvider` (120)<br>`GoogleTasksProvider` (125)<br>`ICSProvider` (140)<br>`OutlookProvider` (150) |
+| **Stage 0 (Local Sync)** | `loadPriority < 100` | Fetched immediately and synchronously during startup. UI populates without waiting for network I/O. | `FullNoteProvider` (10)<br>`DailyNoteProvider` (20)<br>`TasksPluginProvider` (30)<br>`TaskNotesProvider` (40)<br>`HolidayProvider` (50) |
+| **Stage 1 & 2 (Remote Async)** | `loadPriority >= 100` | Fetched asynchronously in background waves using range filtering, yielding, and contract-based stage skipping. | `ICSProvider` (100)<br>`CalDAVProvider` (110)<br>`CalDAVTaskProvider` (115)<br>`GoogleProvider` (120)<br>`GoogleTasksProvider` (125)<br>`OutlookProvider` (125) |
 
 ### Stage Breakdown
 
@@ -31,10 +31,18 @@ When the plugin initializes (or when a full resync is triggered), the `ProviderR
 - **Goal**: Fetch visible remote events without blocking UI interactions.
 - **Behavior**: Fetches active range events for remote providers (CalDAV, Google, Google Tasks, ICS, Outlook).
 
-#### Stage 2 (Remote): Background Remote Sync & Optimization
+#### Stage 2 (Remote): Background Remote Sync & Provider Contracts (`supportsSecondStage`)
 - **Range**: All time (Full Remote History).
 - **Goal**: Complete remote calendar sync.
-- **Behavior**: Fetches remaining remote historical data. For read-only remote providers (like ICS feeds) where Stage 1 already retrieved the full payload, Stage 2 skips redundant network re-downloads and re-parsing.
+- **Behavior**: Rather than hardcoding provider-type checks, the `ProviderRegistry` inspects the `supportsSecondStage` contract flag on each provider instance:
+  - **`supportsSecondStage: true`** (`CalDAVProvider`, `DailyNoteProvider`): Actively executes Stage 2 across full vault history or remote collections.
+  - **`supportsSecondStage: false`** (`GoogleProvider`, `GoogleTasksProvider`, `ICSProvider`, `OutlookProvider`, `CalDAVTaskProvider`, `HolidayProvider`): Because their full payload is already retrieved or range-independent in Stage 1, Stage 2 execution is completely bypassed, eliminating redundant network round-trips and CPU parsing.
+
+#### Single Atomic Render Pass & Intermediate Emission Suppression
+During initial Stage 1 startup, intermediate per-provider emissions to FullCalendar are suppressed. Instead of triggering multiple sequential re-renders as each provider finishes, `CalendarView` executes a single atomic render pass once Stage 1 completes, eliminating layout thrashing and UI jitter.
+
+#### Rapid Event Update Coalescing (`requestAnimationFrame`)
+Subsequent event updates, moves, and creations are debounced and coalesced using `window.requestAnimationFrame`. If multiple events change in rapid succession (e.g. batch synchronization), the UI updates once on the next animation frame.
 
 ---
 
@@ -80,6 +88,17 @@ To guarantee that background cache indexing, parsing, and sync calculations are 
 - **Native Task Scheduling**: For tasks that *must* run on the main thread (such as Obsidian vault file reads via `app.vault.read()` or DOM updates), execution utilizes Chromium 115+ native `scheduler.yield()` (and `setTimeout(0)` macrotask fallback).
 - **6ms Budget Ceiling**: At 60 FPS, an animation frame budget is **16.6ms**. Main-thread loops evaluate `if (performance.now() - frameStart >= 6)` and yield to Chromium when 6ms of CPU time elapses.
 - **Guaranteed UI Responsiveness**: Main-thread tasks never consume more than 6ms per frame tick, leaving >10.6ms every frame for 100% fluid, zero-lag user input (typing, mouse clicks, scrolling) and DOM rendering.
+
+---
+
+## O(1) Identity Key Resolution in `IdentifierMapManager`
+
+Prior to v0.13.7, mapping daily note events during startup performed an O(N x V) search across files and titles, causing an observed 12.4-second main-thread freeze in large vaults.
+
+`IdentifierMapManager` eliminates this bottleneck by:
+1. Prioritizing instant lookups via `computeSyncKey()`.
+2. Utilizing a secondary indexed map `filesByUid` to provide immediate O(1) resolution without linear scans.
+3. Decoupling legacy recurrence ID cleanup into non-blocking self-healing background passes.
 
 ---
 

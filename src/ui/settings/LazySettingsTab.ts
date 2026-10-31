@@ -9,7 +9,7 @@
  * significantly improving Obsidian's startup performance.
  */
 
-import { App, PluginSettingTab } from 'obsidian';
+import { App, PluginSettingTab, SettingDefinitionItem } from 'obsidian';
 import type FullCalendarPlugin from '../../main';
 import type { FullCalendarSettingTab } from './SettingsTab';
 import type { ProviderRegistry } from '../../providers/ProviderRegistry';
@@ -40,9 +40,13 @@ export class LazySettingsTab extends PluginSettingTab {
     void (async () => {
       const tab = await this.ensureActualTab();
       // Use the container provided by Obsidian for this lazy wrapper tab.
-      (tab as PluginSettingTab).containerEl = this.containerEl;
+      tab.containerEl = this.containerEl;
       action(tab);
     })();
+  }
+
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [];
   }
 
   display(): void {
